@@ -1,0 +1,20 @@
+'use client'
+
+import Link from 'next/link'
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-header'
+import { Card } from '@/components/ui/card'
+import { StatusBadge } from '@/components/ui/badge'
+
+const events=[
+  {day:5,name:'IT Security Posture',type:'Reassessment',owner:'Alex Reed',status:'Due Soon'},
+  {day:11,name:'HR Policy Review',type:'Reassessment',owner:'Alex Reed',status:'Due Soon'},
+  {day:18,name:'Supplier Onboarding',type:'Baseline',owner:'Thelma Dube',status:'Planned'},
+  {day:20,name:'Oak & Pixel Website',type:'Reassessment',owner:'Alex Reed',status:'Planned'},
+  {day:25,name:'Quarterly Brand Review',type:'Baseline',owner:'Maya Khan',status:'Draft'},
+]
+
+export function AuditCalendarView(){
+  const leading=5
+  return <div><Link href="/audits" className="mb-4 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5"/> Back to Audits</Link><PageHeader title="Audit Planning Calendar" description="See upcoming audits and reassessments. Resource capacity and workforce allocation remain outside TRACE." action={<Link href="/audits/new" className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"><Plus className="size-4"/> New Audit</Link>}/><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]"><Card className="overflow-hidden"><div className="flex items-center justify-between border-b border-border px-5 py-4"><button aria-label="Previous month" className="flex size-8 items-center justify-center rounded-md border border-border"><ChevronLeft className="size-4"/></button><div className="text-center"><h2 className="text-base font-semibold">August 2026</h2><p className="mt-0.5 text-[10px] text-muted-foreground">5 planned audit events</p></div><button aria-label="Next month" className="flex size-8 items-center justify-center rounded-md border border-border"><ChevronRight className="size-4"/></button></div><div className="grid grid-cols-7 border-b border-border bg-muted/25">{['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day=><div key={day} className="px-2 py-2 text-center text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">{day}</div>)}</div><div className="grid grid-cols-7">{Array.from({length:42},(_,index)=>{const day=index-leading+1;const event=events.find(item=>item.day===day);const inMonth=day>0&&day<=31;return <div key={index} className={`min-h-24 border-b border-r border-border p-2 last:border-r-0 ${!inMonth?'bg-muted/20':''}`}><span className={`text-[10px] ${inMonth?'font-semibold':'text-muted-foreground/40'}`}>{inMonth?day:''}</span>{event&&<Link href="/audits/TRC-WEB-2026-0042/planning" className="mt-2 block rounded-md border border-brand/20 bg-brand-muted/35 p-2"><p className="line-clamp-2 text-[9px] font-semibold text-foreground">{event.name}</p><p className="mt-1 text-[8px] text-brand">{event.type}</p></Link>}</div>})}</div></Card><aside className="space-y-4"><Card className="p-4"><div className="flex items-center gap-2"><CalendarDays className="size-4 text-brand"/><h3 className="text-sm font-semibold">Upcoming</h3></div><div className="mt-4 space-y-4">{events.map(event=><div key={event.name} className="border-b border-border pb-3 last:border-0 last:pb-0"><div className="flex items-start justify-between gap-2"><p className="text-[11px] font-semibold">{event.name}</p><span className="text-[10px] font-semibold text-brand">{event.day} Aug</span></div><p className="mt-1 text-[9px] text-muted-foreground">{event.type} · {event.owner}</p><div className="mt-2"><StatusBadge status={event.status}/></div></div>)}</div></Card><Card className="p-4"><h3 className="text-sm font-semibold">Planning boundary</h3><p className="mt-2 text-[10px] leading-4 text-muted-foreground">This calendar covers audit dates, cadence and owners. Team capacity, utilisation and project staffing belong in HIVE/UNISON.</p></Card></aside></div></div>
+}

@@ -1,0 +1,14 @@
+:root {
+  --trace-motion-fast: 120ms;
+  --trace-motion-standard: 180ms;
+  --trace-motion-deliberate: 240ms;
+  --trace-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --trace-motion-fast: 0ms;
+    --trace-motion-standard: 0ms;
+    --trace-motion-deliberate: 0ms;
+  }
+}

@@ -1,0 +1,24 @@
+import { DataTable, Td, Th, THead, TRow } from '@/components/ui/table'
+import { RowIcon } from '@/components/ui/row-icon'
+import { ActionMenu } from '@/components/templates/template-actions'
+import { EvidenceStatus } from './evidence-status'
+
+export interface EvidenceTableItem {id:string;name:string;meta:string;icon:string;audit:string;auditType:string;type:string;source:string;uploadedBy:string;uploadedOn:string;status:string}
+
+export function EvidenceTable({ evidence, selected=[], onSelect, onSelectAll, onView, onEdit, onArchive, onRestore }: { evidence: readonly EvidenceTableItem[]; selected?:readonly string[]; onSelect?:(id:string)=>void; onSelectAll?:(selected:boolean)=>void; onView:(id:string)=>void; onEdit:(id:string)=>void; onArchive:(id:string)=>void; onRestore:(id:string)=>void }) {
+  return (
+    <><div className="hidden md:block"><DataTable className="min-w-[1040px] table-fixed text-[11px]">
+      <THead><Th className="w-10 px-3"><input type="checkbox" aria-label="Select all visible evidence" checked={evidence.length>0&&evidence.every(item=>selected.includes(item.id))} onChange={event=>onSelectAll?.(event.target.checked)} className="size-3.5 accent-[oklch(0.16_0_0)]"/></Th><Th className="w-[17%] px-3">Evidence Name</Th><Th className="w-[18%] px-3">Audit / Assessment</Th><Th className="w-[9%] px-3">Evidence Type</Th><Th className="w-[14%] px-3">Source / Location</Th><Th className="w-[10%] px-3">Uploaded By</Th><Th className="w-[13%] px-3">Uploaded On</Th><Th className="w-[7%] px-3">Status</Th><Th className="w-10 px-1">Actions</Th></THead>
+      <tbody>
+        {evidence.map((item) => (
+          <TRow key={item.id} className="h-[53px]">
+            <Td className="px-3"><input type="checkbox" aria-label={`Select ${item.name}`} checked={selected.includes(item.id)} onChange={()=>onSelect?.(item.id)} className="size-3.5 accent-[oklch(0.16_0_0)]"/></Td>
+            <Td className="px-3 py-1.5"><div className="flex items-center gap-3"><RowIcon name={item.icon} /><div className="min-w-0"><p className="truncate font-semibold">{item.name}</p><p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.meta}</p></div></div></Td>
+            <Td className="px-3 py-1.5"><p className="truncate">{item.audit}</p><p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.auditType}</p></Td>
+            <Td className="px-3 py-1.5 text-muted-foreground">{item.type}</Td><Td className="truncate px-3 py-1.5 text-muted-foreground">{item.source}</Td><Td className="whitespace-nowrap px-3 py-1.5 text-muted-foreground">{item.uploadedBy}</Td><Td className="whitespace-nowrap px-3 py-1.5 text-muted-foreground">{item.uploadedOn}</Td><Td className="px-3 py-1.5"><EvidenceStatus status={item.status} /></Td><Td className="px-1 py-1.5"><ActionMenu actions={item.status==='Archived'?[{label:'View read-only',kind:'view',onSelect:()=>onView(item.id)},{label:'Restore Evidence',kind:'restore',onSelect:()=>onRestore(item.id)}]:[{label:'View Evidence',kind:'view',onSelect:()=>onView(item.id)},{label:'Edit Metadata & Links',kind:'edit',onSelect:()=>onEdit(item.id)},{label:'Archive Evidence',kind:'archive',onSelect:()=>onArchive(item.id)}]} /></Td>
+          </TRow>
+        ))}
+      </tbody>
+    </DataTable></div><div className="divide-y divide-border md:hidden">{evidence.map(item=><article key={item.id} className="p-4"><div className="flex items-start gap-3"><input type="checkbox" aria-label={`Select ${item.name}`} checked={selected.includes(item.id)} onChange={()=>onSelect?.(item.id)} className="mt-1 size-4 accent-[oklch(0.16_0_0)]"/><RowIcon name={item.icon}/><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.name}</p><p className="mt-1 truncate text-[10px] text-muted-foreground">{item.audit}</p></div><ActionMenu actions={item.status==='Archived'?[{label:'View read-only',kind:'view',onSelect:()=>onView(item.id)},{label:'Restore Evidence',kind:'restore',onSelect:()=>onRestore(item.id)}]:[{label:'View Evidence',kind:'view',onSelect:()=>onView(item.id)},{label:'Edit Metadata & Links',kind:'edit',onSelect:()=>onEdit(item.id)},{label:'Archive Evidence',kind:'archive',onSelect:()=>onArchive(item.id)}]}/></div><div className="mt-4 grid grid-cols-3 gap-3 rounded-md bg-muted/35 p-3 text-[10px]"><div><p className="text-muted-foreground">Type</p><p className="mt-1 font-semibold">{item.type}</p></div><div><p className="text-muted-foreground">Status</p><div className="mt-1"><EvidenceStatus status={item.status}/></div></div><div><p className="text-muted-foreground">Uploaded by</p><p className="mt-1 truncate font-semibold">{item.uploadedBy}</p></div></div><button onClick={()=>onView(item.id)} className="mt-3 h-9 w-full rounded-md border border-border text-xs font-semibold">View Evidence</button></article>)}</div></>
+  )
+}
