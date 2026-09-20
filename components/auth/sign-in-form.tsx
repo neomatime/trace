@@ -12,7 +12,7 @@ export function SignInForm() {
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    router.push('/audits')
+    router.push('/overview')
   }
 
   return (
@@ -63,7 +63,7 @@ export function SignInForm() {
             <span className="h-px flex-1 bg-border" />
           </div>
 
-          <button type="button" onClick={() => router.push('/audits')} className="flex h-[50px] w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-background text-sm font-medium text-foreground transition-colors hover:bg-muted/50">
+          <button type="button" onClick={() => router.push('/overview')} className="flex h-[50px] w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-background text-sm font-medium text-foreground transition-colors hover:bg-muted/50">
             <MicrosoftLogo />
             Sign in with Microsoft
           </button>

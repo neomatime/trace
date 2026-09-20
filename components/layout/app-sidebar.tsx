@@ -18,6 +18,7 @@ import {
   LogOut,
   ShieldCheck,
   UserRound,
+  House,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TraceLogo } from './trace-logo'
@@ -28,6 +29,7 @@ import { ConfirmActionDialog } from '@/components/ui/crud'
 import { Tooltip } from '@/components/ui/tooltip'
 
 const navigationIcons = {
+  home: House,
   layers: Layers,
   clock: Clock,
   template: LayoutTemplate,
@@ -70,7 +72,7 @@ export function AppSidebar({
       )}
     >
       <div className={cn('relative flex h-16 items-center overflow-hidden', collapsed ? 'justify-center px-3' : 'px-6')}>
-        <Link href="/audits" aria-label="TRACE home">
+        <Link href="/overview" aria-label="TRACE overview">
           <span className={cn('relative block h-8 overflow-hidden transition-[width] duration-300', collapsed ? 'w-8' : 'w-[180px]')}>
             {collapsed ? (
               <Image
