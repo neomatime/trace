@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   UserRound,
   House,
+  ChartNoAxesCombined,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TraceLogo } from './trace-logo'
@@ -31,6 +32,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 const navigationIcons = {
   home: House,
   layers: Layers,
+  analytics: ChartNoAxesCombined,
   clock: Clock,
   template: LayoutTemplate,
   framework: Settings2,

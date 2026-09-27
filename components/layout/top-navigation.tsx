@@ -15,7 +15,7 @@ export function TopNavigation() {
   const pathname = usePathname()
   const router = useRouter()
   const inAudit = pathname.startsWith('/audits')
-  const inOverview = pathname === '/overview'
+  const inCommandCenter = pathname === '/overview' || pathname === '/analytics'
   const [drawerOpen,setDrawerOpen]=useState(false)
   const [signOutOpen,setSignOutOpen]=useState(false)
   const reduceMotion=useReducedMotion()
@@ -42,11 +42,11 @@ export function TopNavigation() {
           New Audit
         </Link>
         <Link
-          href={inAudit || inOverview ? '/history' : '/audits'}
+          href={inAudit || inCommandCenter ? '/history' : '/audits'}
           className="hidden items-center gap-1.5 text-sm font-medium text-foreground hover:text-foreground/70 sm:flex"
         >
           <Clock className="size-4" strokeWidth={1.75} />
-          {inAudit || inOverview ? 'History' : 'Audits'}
+          {inAudit || inCommandCenter ? 'History' : 'Audits'}
         </Link>
         <Link
           href="/evidence"
