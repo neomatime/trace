@@ -2,6 +2,7 @@ import { AuditHeader } from '@/components/audits/audit-header'
 import { AuditTabs } from '@/components/audits/audit-tabs'
 import { ProcessFlowWorkspace } from '@/components/process-flows/process-flow-workspace'
 import { parseMockRole } from '@/data/mock/process-flows'
+import { supportsProcessWorkflow } from '@/modules/process-flows/workflow-support'
 
 // Server Component page: `params` and `searchParams` are Promises and must be awaited
 // (node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md);
@@ -18,12 +19,23 @@ export default async function WorkflowPage({
   // development; it is ignored in production builds and has no UI.
   const as = process.env.NODE_ENV !== 'production' ? (await searchParams).as : undefined
   const devRole = parseMockRole(typeof as === 'string' ? as : undefined)
-  const id = decodeURIComponent(auditId)
+  let id = auditId
+  try {
+    id = decodeURIComponent(auditId)
+  } catch {
+    // Malformed percent-encoding: keep the raw id rather than failing the page.
+  }
   return (
     <div>
       <AuditHeader />
       <AuditTabs />
-      <ProcessFlowWorkspace key={`${id}:${devRole ?? ''}`} auditId={id} devRole={devRole} />
+      {supportsProcessWorkflow(id) ? (
+        <ProcessFlowWorkspace key={`${id}:${devRole ?? ''}`} auditId={id} devRole={devRole} />
+      ) : (
+        <p className="mt-6 rounded-lg border border-border p-6 text-sm text-muted-foreground">
+          The process workflow isn&apos;t available for this audit type.
+        </p>
+      )}
     </div>
   )
 }
