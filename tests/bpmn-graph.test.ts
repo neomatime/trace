@@ -216,3 +216,34 @@ test('buildCompareXml ignores unknown ids and ids already present', async () => 
   assert.equal(parsed.graph.elements.filter((e) => e.id === 'Task_1').length, 1)
   assert.ok(!parsed.graph.elements.some((e) => e.id === 'Ghost'))
 })
+
+const LANES_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="D" targetNamespace="http://example.com/bpmn">
+  <bpmn:process id="P">
+    <bpmn:laneSet id="LS">
+      <bpmn:lane id="Lane_Named" name="Line Manager">
+        <bpmn:flowNodeRef>T1</bpmn:flowNodeRef>
+        <bpmn:childLaneSet id="LS_child">
+          <bpmn:lane id="Lane_Nested" name="Approvers" />
+          <bpmn:lane id="Lane_NestedBlank" />
+        </bpmn:childLaneSet>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Blank"><bpmn:flowNodeRef>T2</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_Empty" name="" />
+    </bpmn:laneSet>
+    <bpmn:task id="T1" name="One" />
+    <bpmn:task id="T2" name="Two" />
+  </bpmn:process>
+</bpmn:definitions>`
+
+test('laneNames holds named lanes, nested lanes included, and skips unnamed ones', async () => {
+  const result = await parseBpmnXml(LANES_XML)
+  assert.ok(result.ok)
+  assert.deepEqual(result.graph.laneNames, { Lane_Named: 'Line Manager', Lane_Nested: 'Approvers' })
+})
+
+test('a graph without lanes has an empty laneNames record', async () => {
+  const result = await parseBpmnXml(await emptyProcessXml('Process'))
+  assert.ok(result.ok)
+  assert.deepEqual(result.graph.laneNames, {})
+})

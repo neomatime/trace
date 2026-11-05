@@ -87,6 +87,16 @@ function laneAssignments(process: ModdleElement): Map<string, string> {
   return result
 }
 
+function laneNamesOf(process: ModdleElement, into: Record<string, string>): void {
+  const visit = (lanes: ModdleElement[]) => {
+    for (const lane of lanes) {
+      if (typeof lane.name === 'string' && lane.name.trim().length > 0) into[lane.id] = lane.name
+      if (lane.childLaneSet) visit(lane.childLaneSet.lanes ?? [])
+    }
+  }
+  for (const laneSet of (process.laneSets ?? []) as ModdleElement[]) visit(laneSet.lanes ?? [])
+}
+
 export async function parseBpmnXml(xml: string): Promise<ParseResult> {
   try {
     if (typeof xml !== 'string' || xml.trim().length === 0) {
@@ -98,16 +108,18 @@ export async function parseBpmnXml(xml: string): Promise<ParseResult> {
     }
     const elements: ProcessElement[] = []
     const edges: ProcessEdge[] = []
+    const laneNames: Record<string, string> = {}
     for (const root of (rootElement.rootElements ?? []) as ModdleElement[]) {
       if (root.$type === 'bpmn:Process') {
         collectFlowElements(root, laneAssignments(root), elements, edges)
+        laneNamesOf(root, laneNames)
       } else if (root.$type === 'bpmn:Collaboration') {
         for (const flow of (root.messageFlows ?? []) as ModdleElement[]) {
           edges.push(toEdge(flow, 'message'))
         }
       }
     }
-    return { ok: true, graph: { elements, edges } }
+    return { ok: true, graph: { elements, edges, laneNames } }
   } catch (error) {
     return { ok: false, error: messageOf(error) }
   }

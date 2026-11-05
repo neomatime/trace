@@ -37,6 +37,8 @@ export interface ProcessEdge {
 export interface ProcessGraph {
   elements: readonly ProcessElement[]
   edges: readonly ProcessEdge[]
+  /** Lane id -> lane name. Lanes without a name are absent. */
+  laneNames?: Readonly<Record<EntityId, string>>
 }
 
 export interface ProcessFlow extends AuditAttribution {
