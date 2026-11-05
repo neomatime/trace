@@ -14,8 +14,10 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@vercel/analytics": "1.6.1",
+    "bpmn-moddle": "^10.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "diagram-js": "^15.28.1",
     "lucide-react": "^1.16.0",
     "motion": "^13.1.0",
     "next": "16.3.0",
