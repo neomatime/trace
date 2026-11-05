@@ -27,14 +27,14 @@ An Audit is a durable lineage. A baseline or reassessment is an Assessment withi
 
 The Workflow tab of an Operational Flow Audit holds a BPMN 2.0 process-flow builder. This milestone is UI/UX only: all state is client-side mock state and there is no backend.
 
-**Lifecycle.** Each model moves Draft → In Review → Awaiting Client → Approved, and an Approved model is locked. The As-Is is mapped first. When it is approved, a To-Be is created automatically from it. The two approvals (HIMARK, then client) are recorded by the Audit Lead with an Approve button; the client approval happens outside the system, so there is no client sign-in. Only roles with the `processflow:approve` permission see the control.
+**Lifecycle.** Each model moves Draft → In Review → Awaiting Client → Approved, and an Approved model is locked. The As-Is is mapped first. When it is approved, a To-Be is created automatically from it. The two approvals (HIMARK, then client) are recorded by the Audit Lead (and Admin, who holds every permission) with an Approve button; the client approval happens outside the system, so there is no client sign-in. Only roles with the `processflow:approve` permission see the control.
 
 **Tabs.** As-Is, To-Be, Compare (gaps and metrics between the two) and Improvements (rule-based and demo "AI" suggestions that a person accepts or rejects).
 
 **Where things live.**
 
-- `modules/process-flows/` — pure domain logic (lifecycle, workspace state, diff, metrics, validation, rules, suggestion state)
-- `lib/bpmn/` — graph and compare model; `lib/bpmn/editor/` — the diagram editor
+- `modules/process-flows/` — pure domain logic (lifecycle, workspace state, diff, compare model, metrics, validation, rules, suggestion state)
+- `lib/bpmn/` — the process graph model and the compare XML builder; `lib/bpmn/editor/` — the diagram editor
 - `components/process-flows/` — workspace UI; `hooks/use-process-flow.ts` — client state
 - `data/mock/process-flows.ts` and `data/mock/process-flow-seed.ts` — mock user, demo suggestions and the seeded Purchase-to-Pay flow
 - `types/process-flow.ts` — domain types
