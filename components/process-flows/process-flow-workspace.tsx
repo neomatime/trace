@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, CircleDashed, Lightbulb, Workflow, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, CircleDashed, Workflow, X } from 'lucide-react'
 import { CrudEmptyState, CrudToast } from '@/components/ui/crud'
 import { PageTabs } from '@/components/ui/tabs'
 import { currentProcessFlowUser, mockUserForRole, userName } from '@/data/mock/process-flows'
@@ -20,6 +20,7 @@ import { BpmnEditor } from './bpmn-editor'
 import { CompareView } from './compare-view'
 import { ElementPropertiesPanel } from './element-properties-panel'
 import { StageStepper } from './stage-stepper'
+import { SuggestionsPanel } from './suggestions-panel'
 
 const TABS = ['As-Is', 'To-Be', 'Compare', 'Improvements'] as const
 type Tab = (typeof TABS)[number]
@@ -40,7 +41,7 @@ export interface ProcessFlowWorkspaceProps {
 
 export function ProcessFlowWorkspace({ auditId, devRole }: ProcessFlowWorkspaceProps) {
   const user: ProcessFlowUser = devRole ? mockUserForRole(devRole) : currentProcessFlowUser
-  const { flow, asIs, toBe, approvals, error, ready, actions } = useProcessFlow(auditId, user)
+  const { flow, asIs, toBe, approvals, error, ready, aiDemo, suggestionStore, actions } = useProcessFlow(auditId, user)
   const { can } = usePermissions(user.role)
   const [tab, setTab] = useState<Tab>('As-Is')
   const [toast, setToast] = useState('')
@@ -175,10 +176,18 @@ export function ProcessFlowWorkspace({ auditId, devRole }: ProcessFlowWorkspaceP
           <CompareView asIs={asIs} toBe={toBe} canCreateToBe={can('audit:run')} onCreateToBe={createToBe} />
         ) : null}
         {tab === 'Improvements' ? (
-          <Placeholder
-            icon={<Lightbulb className="size-5 text-brand" aria-hidden />}
-            title="Improvement suggestions — coming next"
-            text="Suggested improvements for this process will appear here for you to accept, edit or reject."
+          <SuggestionsPanel
+            flowId={flow.id}
+            asIs={asIs}
+            toBe={toBe}
+            role={user.role}
+            aiDemo={aiDemo}
+            store={suggestionStore}
+            canCreateToBe={can('audit:run')}
+            onCreateToBe={createToBe}
+            onDecide={actions.decideSuggestion}
+            onRecommendationCreated={actions.markRecommendationCreated}
+            onToast={setToast}
           />
         ) : null}
       </div>
