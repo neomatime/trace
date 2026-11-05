@@ -48,7 +48,7 @@ import TraceRules from './rules.ts'
 import { syncDefinitions, type DiagramSnapshot } from './semantic-sync.ts'
 import type { EditorModule, ProcessEditor, ProcessEditorOptions } from './types.ts'
 
-export type { CompareState, EditorModule, ProcessEditor, ProcessEditorOptions } from './types.ts'
+export type { CompareState, ElementInfo, EditorModule, ProcessEditor, ProcessEditorOptions } from './types.ts'
 export { traceContextPadModule } from './context-pad.ts'
 
 /** TRACE BPMN core: semantic document, BPMN element factory and renderer. */
@@ -271,6 +271,16 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
     setAuditFields(elementId, fields: AuditFields) {
       if (!commandStack) throw new Error('The diagram is read-only')
       commandStack.execute(UPDATE_AUDIT_FIELDS, { element: elementOrThrow(elementId), fields })
+    },
+
+    getElementInfo(elementId) {
+      const element = registry.get(elementId) as Element | undefined
+      if (!element || isRoot(element) || !element.businessObject) return null
+      const bo = element.businessObject as { name?: string; $type: string }
+      let lane: Element | undefined = element.parent
+      while (lane && lane.businessObject?.$type !== 'bpmn:Lane') lane = lane.parent
+      const laneName = (lane?.businessObject as { name?: string } | undefined)?.name
+      return { name: bo.name ?? '', bpmnType: bo.$type, ...(laneName ? { laneName } : {}) }
     },
 
     setCompareStates(states) {

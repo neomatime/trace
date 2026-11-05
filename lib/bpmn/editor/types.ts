@@ -36,6 +36,20 @@ export interface ProcessEditor {
    * view (inside the lane/pool there, if any) and select it.
    */
   addElement(bpmnType: string): EntityId | null
+
+  // Task 11 addition (properties panel).
+
+  /**
+   * Read-only facts about an element for display: its name, BPMN type and the
+   * name of the nearest enclosing lane. Null if it is not on the canvas.
+   */
+  getElementInfo(elementId: EntityId): ElementInfo | null
+}
+
+export interface ElementInfo {
+  name: string
+  bpmnType: string
+  laneName?: string
 }
 
 /** didi module declaration as accepted by diagram-js (`import('didi').ModuleDeclaration`). */

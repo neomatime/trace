@@ -3,8 +3,9 @@
 // deletes this route.
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { BpmnEditor } from '@/components/process-flows/bpmn-editor'
+import { ElementPropertiesPanel } from '@/components/process-flows/element-properties-panel'
 import type { ProcessEditor } from '@/lib/bpmn/editor'
 import { emptyProcessXml, parseBpmnXml } from '@/lib/bpmn/graph'
 import { SCRATCH_SEED_XML } from '@/lib/bpmn/editor/__scratch-seed'
@@ -13,7 +14,7 @@ const button =
   'rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring'
 
 export default function BpmnScratchPage() {
-  const editor = useRef<ProcessEditor>(null)
+  const [editor, setEditor] = useState<ProcessEditor | null>(null)
   const [xml, setXml] = useState(SCRATCH_SEED_XML)
   const [readOnly, setReadOnly] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
@@ -22,7 +23,7 @@ export default function BpmnScratchPage() {
   const [report, setReport] = useState('')
 
   const roundTrip = async () => {
-    const current = editor.current
+    const current = editor
     if (!current) return
     const exported = await current.exportXml()
     const before = await parseBpmnXml(exported)
@@ -37,7 +38,7 @@ export default function BpmnScratchPage() {
       <header className="flex flex-wrap items-center gap-2">
         <h1 className="mr-4 text-lg font-semibold">BPMN editor scratch (temporary)</h1>
         <button className={button} onClick={() => void roundTrip()}>Export, re-import, compare</button>
-        <button className={button} onClick={() => setReadOnly((v) => !v)}>
+        <button className={button} onClick={() => { setSelected(null); setReadOnly((v) => !v) }}>
           {readOnly ? 'Make editable' : 'Make read-only'}
         </button>
         <button className={button} onClick={() => setXml(SCRATCH_SEED_XML)}>Reset seed</button>
@@ -48,11 +49,12 @@ export default function BpmnScratchPage() {
           selected: {selected ?? 'none'} · changes: {changes} · issues: {issueCount ?? '-'} · {report}
         </span>
       </header>
-      <section className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
+      <div className="flex min-h-0 flex-1 gap-3">
+      <section className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border border-border">
         <BpmnEditor
           xml={xml}
           readOnly={readOnly}
-          editorRef={editor}
+          editorRef={setEditor}
           onSelect={setSelected}
           onIssuesChange={(list) => setIssueCount(list.length)}
           onXmlChange={(next) => {
@@ -61,6 +63,18 @@ export default function BpmnScratchPage() {
           }}
         />
       </section>
+      <div className="w-80 shrink-0 overflow-hidden rounded-lg border border-border">
+        <ElementPropertiesPanel
+          editor={editor}
+          selectedId={selected}
+          readOnly={readOnly}
+          lockedReason="Locked — approved versions can't be edited"
+          onRaiseFinding={(id) => setReport(`raise finding: ${id}`)}
+          onLinkRecommendation={(id) => setReport(`link recommendation: ${id}`)}
+          evidenceHref="/bpmn-scratch#evidence"
+        />
+      </div>
+      </div>
     </main>
   )
 }
