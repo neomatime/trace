@@ -224,6 +224,8 @@ export default class TraceLabelEditing {
     }
     field.addEventListener('keydown', (event) => {
       event.stopPropagation()
+      // Enter/Escape during IME composition confirm or cancel the composition, not the rename.
+      if (event.isComposing || event.keyCode === 229) return
       if (event.key === 'Enter') {
         event.preventDefault()
         this.close(true, true)
