@@ -32,7 +32,7 @@ export function validateGraph(graph: ProcessGraph): ValidationIssue[] {
     const out = outgoing.get(element.id) ?? 0
     const inc = incoming.get(element.id) ?? 0
 
-    if (element.bpmnType === 'bpmn:ExclusiveGateway' && out < 2 && (inc >= 2 || inc === 0)) {
+    if (element.bpmnType === 'bpmn:ExclusiveGateway' && out < 2 && inc <= 1) {
       issues.push({ elementId: element.id, severity: 'warning', message: 'This decision has only one path out.' })
     }
     if (element.bpmnType !== 'bpmn:EndEvent' && out === 0) {

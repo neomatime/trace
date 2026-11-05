@@ -38,6 +38,30 @@ test('exclusive gateway with a single outgoing flow warns', () => {
   ])
 })
 
+const ONLY_ONE_PATH = 'This decision has only one path out.'
+
+test('merge gateway with two incoming and one outgoing flow does not warn', () => {
+  const graph: ProcessGraph = {
+    elements: [
+      el('s', 'bpmn:StartEvent'),
+      el('a', 'bpmn:Task'),
+      el('b', 'bpmn:Task'),
+      el('g', 'bpmn:ExclusiveGateway'),
+      el('e', 'bpmn:EndEvent'),
+    ],
+    edges: [edge('1', 's', 'a'), edge('2', 's', 'b'), edge('3', 'a', 'g'), edge('4', 'b', 'g'), edge('5', 'g', 'e')],
+  }
+  assert.equal(validateGraph(graph).some((i) => i.message === ONLY_ONE_PATH), false)
+})
+
+test('pass-through gateway with one incoming and one outgoing flow warns', () => {
+  const graph: ProcessGraph = {
+    elements: [el('s', 'bpmn:StartEvent'), el('g', 'bpmn:ExclusiveGateway'), el('e', 'bpmn:EndEvent')],
+    edges: [edge('1', 's', 'g'), edge('2', 'g', 'e')],
+  }
+  assert.deepEqual(validateGraph(graph), [{ elementId: 'g', severity: 'warning', message: ONLY_ONE_PATH }])
+})
+
 test('dangling step warns', () => {
   const graph: ProcessGraph = {
     elements: [el('s', 'bpmn:StartEvent'), el('t', 'bpmn:Task'), el('d', 'bpmn:Task'), el('e', 'bpmn:EndEvent')],
