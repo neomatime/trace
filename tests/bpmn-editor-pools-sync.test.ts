@@ -5,7 +5,7 @@ import { parseBpmnXml } from '../lib/bpmn/graph.ts'
 import { planDiagram, type DiagramPlan } from '../lib/bpmn/editor/diagram-plan.ts'
 import { syncDefinitions, type DiagramSnapshot, type SnapshotShape } from '../lib/bpmn/editor/semantic-sync.ts'
 import { applyRootSwap, revertRootSwap } from '../lib/bpmn/editor/pool-wrap.ts'
-import { SCRATCH_SEED_XML } from '../lib/bpmn/editor/__scratch-seed.ts'
+import { PROCESS_FLOW_SEED_XML } from '../data/mock/process-flow-seed.ts'
 
 async function load(xml: string) {
   const moddle = createModdle()
@@ -38,7 +38,7 @@ function danglingRefs(xml: string): string[] {
 
 test('deleting a pool removes its process, its message flows and leaves no dangling references', async () => {
   // A message flow without DI (never drawn) also points into the pool.
-  const xml = SCRATCH_SEED_XML.replace(
+  const xml = PROCESS_FLOW_SEED_XML.replace(
     '</bpmn:collaboration>',
     '<bpmn:messageFlow id="MessageFlow_Hidden" sourceRef="Participant_Supplier" targetRef="UserTask_Review" /></bpmn:collaboration>',
   )
@@ -63,7 +63,7 @@ test('deleting a pool removes its process, its message flows and leaves no dangl
 })
 
 test('deleting a lane keeps its steps at pool level and out of every lane', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
   const snapshot = snapshotOf(planDiagram(definitions))
   const shapes = snapshot.shapes
     .filter((s) => s.id !== 'Lane_LineManager')
@@ -86,7 +86,7 @@ test('deleting a lane keeps its steps at pool level and out of every lane', asyn
 })
 
 test('a new pool brings its own process into the definitions', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
   const snapshot = snapshotOf(planDiagram(definitions))
   const process = moddle.create('bpmn:Process', { id: 'Process_New', isExecutable: false })
   const participant = moddle.create('bpmn:Participant', { id: 'Participant_New', processRef: process })

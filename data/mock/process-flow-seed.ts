@@ -1,11 +1,12 @@
 /**
- * TEMPORARY seed for the /bpmn-scratch verification page and the editor
- * round-trip test. Task 13a removes the scratch page; keep or move this seed
- * then. Exercises every Stage 1 element: a pool with three lanes, start/end
- * events, user/manual/service tasks, an exclusive gateway with Yes/No flows,
- * a collapsed second pool and a message flow.
+ * Seed As-Is diagram for the Purchase-to-Pay process flow (mock data, see
+ * `data/mock/process-flows.ts`), also used by the editor model tests.
+ * Exercises every Stage 1 element: a pool with three lanes, start/end events,
+ * user/manual/service tasks, an exclusive gateway with Yes/No flows, a
+ * collapsed second pool and a message flow. Kept free of imports so
+ * `node --experimental-strip-types` tests can load it.
  */
-export const SCRATCH_SEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
+export const PROCESS_FLOW_SEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"

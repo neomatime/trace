@@ -16,7 +16,7 @@ import { planDiagram } from '../lib/bpmn/editor/diagram-plan.ts'
 import type { DiagramPlan } from '../lib/bpmn/editor/diagram-plan.ts'
 import { syncDefinitions } from '../lib/bpmn/editor/semantic-sync.ts'
 import type { DiagramSnapshot, SnapshotShape } from '../lib/bpmn/editor/semantic-sync.ts'
-import { SCRATCH_SEED_XML } from '../lib/bpmn/editor/__scratch-seed.ts'
+import { PROCESS_FLOW_SEED_XML } from '../data/mock/process-flow-seed.ts'
 
 async function load(xml: string) {
   const moddle = createModdle()
@@ -93,7 +93,7 @@ test('default sizes and capabilities follow BPMN conventions', () => {
 })
 
 test('planDiagram nests lanes in the pool and flow nodes in their lane', async () => {
-  const { definitions } = await load(SCRATCH_SEED_XML)
+  const { definitions } = await load(PROCESS_FLOW_SEED_XML)
   const plan = planDiagram(definitions)
   assert.equal(plan.root.type, 'bpmn:Collaboration')
   assert.deepEqual(plan.warnings, [])
@@ -118,8 +118,8 @@ test('planDiagram nests lanes in the pool and flow nodes in their lane', async (
 })
 
 test('an unedited canvas exports XML that re-parses to the identical graph', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
-  const before = await graphOf(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
+  const before = await graphOf(PROCESS_FLOW_SEED_XML)
   const result = syncDefinitions(moddle, definitions, snapshotOf(planDiagram(definitions)))
   assert.deepEqual(result.warnings, [])
   const { xml } = await moddle.toXML(definitions, { format: true })
@@ -133,7 +133,7 @@ test('an unedited canvas exports XML that re-parses to the identical graph', asy
 })
 
 test('moving a shape on the canvas updates DI bounds and lane membership', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
   const snapshot = snapshotOf(planDiagram(definitions))
   const review = snapshot.shapes.find((s) => s.id === 'UserTask_Review') as SnapshotShape
   review.parentId = 'Lane_Finance'
@@ -148,7 +148,7 @@ test('moving a shape on the canvas updates DI bounds and lane membership', async
 })
 
 test('deleting shapes and flows on the canvas removes them from the semantic model', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
   const snapshot = snapshotOf(planDiagram(definitions))
   const gone = new Set(['ManualTask_Return', 'Flow_No', 'Flow_Return_Capture'])
   const edited: DiagramSnapshot = {
@@ -167,7 +167,7 @@ test('deleting shapes and flows on the canvas removes them from the semantic mod
 })
 
 test('a new canvas element gets semantic placement and DI', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
   const snapshot = snapshotOf(planDiagram(definitions))
   const task = moddle.create('bpmn:ServiceTask', { id: 'ServiceTask_New', name: 'Post to ledger' })
   const flow = moddle.create('bpmn:SequenceFlow', { id: 'Flow_New' })

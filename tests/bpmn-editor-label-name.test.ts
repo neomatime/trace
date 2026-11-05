@@ -5,7 +5,7 @@ import { createModdle } from '../lib/bpmn/trace-moddle.ts'
 import { parseBpmnXml } from '../lib/bpmn/graph.ts'
 import { planDiagram, type DiagramPlan } from '../lib/bpmn/editor/diagram-plan.ts'
 import { syncDefinitions, type DiagramSnapshot, type SnapshotShape } from '../lib/bpmn/editor/semantic-sync.ts'
-import { SCRATCH_SEED_XML } from '../lib/bpmn/editor/__scratch-seed.ts'
+import { PROCESS_FLOW_SEED_XML } from '../data/mock/process-flow-seed.ts'
 
 test('trims leading and trailing whitespace', () => {
   assert.equal(normalizeElementName('  Check invoice  '), 'Check invoice')
@@ -76,7 +76,7 @@ function snapshotOf(plan: DiagramPlan): { shapes: SnapshotShape[]; connections: 
 }
 
 test('a renamed task, lane, pool and flow round-trip through the exported XML, special characters included', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
   const snapshot = snapshotOf(planDiagram(definitions))
   const shape = (id: string) => snapshot.shapes.find((s) => s.id === id)!.businessObject
   const task = 'Check "PO" & <approve> 5 > 3'
@@ -109,7 +109,7 @@ test('a renamed task, lane, pool and flow round-trip through the exported XML, s
 })
 
 test('clearing a name removes it from the XML and from the parsed graph', async () => {
-  const { moddle, definitions } = await load(SCRATCH_SEED_XML)
+  const { moddle, definitions } = await load(PROCESS_FLOW_SEED_XML)
   const snapshot = snapshotOf(planDiagram(definitions))
   const shape = snapshot.shapes.find((s) => s.id === 'UserTask_Review')!
   assert.ok(shape.businessObject.name, 'seed task starts named')
