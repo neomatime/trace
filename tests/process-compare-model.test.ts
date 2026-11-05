@@ -235,10 +235,10 @@ test('describeChange names the other fields', () => {
   )
   const change = diffGraphs(graph([before]), graph([after])).changed[0]
   assert.equal(
-    describeChange(change),
+    describeChange(change, { before: { L1: 'Clerk' }, after: { L2: 'Finance' } }),
     [
       'name "Check" → "Check invoice"',
-      'lane L1 → L2',
+      'lane Clerk → Finance',
       'owner AP clerk → Finance',
       'system none → ERP',
       'work none → 1.5 h',
@@ -247,6 +247,40 @@ test('describeChange names the other fields', () => {
       'pain point "slow" → none',
     ].join(' · '),
   )
+})
+
+function laneChange(beforeLane: string | undefined, afterLane: string | undefined) {
+  const a = el('a', 'Check', 'bpmn:Task', {}, beforeLane)
+  const b = el('a', 'Check', 'bpmn:Task', {}, afterLane)
+  return diffGraphs(graph([a]), graph([b])).changed[0]
+}
+
+test('lane changes read with lane names from the matching graph', () => {
+  const change = laneChange('Lane_LineManager', 'Lane_Finance')
+  const names = { before: { Lane_LineManager: 'Line Manager' }, after: { Lane_Finance: 'Finance' } }
+  assert.equal(describeChange(change, names), 'lane Line Manager → Finance')
+})
+
+test('an unnamed seeded lane id is tidied and never shows the raw id', () => {
+  assert.equal(describeChange(laneChange('Lane_LineManager', 'Lane_Finance')), 'lane Line Manager → Finance')
+  assert.equal(describeChange(laneChange('Lane_Credit_control', 'Lane_Finance')), 'lane Credit Control → Finance')
+})
+
+test('an opaque generated lane id reads as an unnamed lane', () => {
+  assert.equal(describeChange(laneChange('Lane_1x9k2q', 'Lane_0abc123')), 'lane an unnamed lane → an unnamed lane')
+  assert.equal(describeChange(laneChange('Lane_1x9k2q', 'Lane_Finance')), 'lane an unnamed lane → Finance')
+})
+
+test('a lane that was added or removed reads sensibly', () => {
+  const names = { before: { Lane_Finance: 'Finance' }, after: { Lane_Finance: 'Finance' } }
+  assert.equal(describeChange(laneChange(undefined, 'Lane_Finance'), names), 'lane no lane → Finance')
+  assert.equal(describeChange(laneChange('Lane_Finance', undefined), names), 'lane Finance → no lane')
+})
+
+test("buildCompareModel uses each graph's own lane names", () => {
+  const a: ProcessGraph = { ...graph([el('t', 'Task', 'bpmn:Task', {}, 'L1')]), laneNames: { L1: 'Clerk' } }
+  const b: ProcessGraph = { ...graph([el('t', 'Task', 'bpmn:Task', {}, 'L2')]), laneNames: { L2: 'Finance' } }
+  assert.equal(buildCompareModel(a, b).rows[0].detail, 'lane Clerk → Finance')
 })
 
 test('summarizeGaps counts each kind and pluralises', () => {

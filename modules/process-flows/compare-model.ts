@@ -91,14 +91,40 @@ const quoted = (value: string | undefined): string => (value ? `"${value}"` : NO
 const minutes = (value: number | undefined): string => (value === undefined ? NONE : formatDuration(value))
 const approval = (value: boolean | undefined): string => (value ? 'required' : 'not required')
 
-function describeField(field: ChangedField, before: ProcessElement, after: ProcessElement): string {
+export interface LaneNames {
+  before?: Readonly<Record<EntityId, string>>
+  after?: Readonly<Record<EntityId, string>>
+}
+
+const UNNAMED_LANE = 'an unnamed lane'
+
+/** The lane's name, else a tidied id (`Lane_LineManager` -> `Line Manager`), else a generic label. Never the raw id. */
+function laneLabel(laneId: EntityId | undefined, names: Readonly<Record<EntityId, string>> | undefined): string {
+  if (!laneId) return 'no lane'
+  const named = names?.[laneId]
+  if (named) return named
+  const words = laneId
+    .replace(/^lane[_\-\s]*/i, '')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+  if (words.length === 0 || (words.length === 1 && /\d/.test(words[0]))) return UNNAMED_LANE
+  return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
+}
+
+function describeField(
+  field: ChangedField,
+  before: ProcessElement,
+  after: ProcessElement,
+  lanes: LaneNames,
+): string {
   switch (field) {
     case 'bpmnType':
       return `${typeLabel(before.bpmnType)} → ${typeLabel(after.bpmnType)}`
     case 'name':
       return `name ${quoted(before.name)} → ${quoted(after.name)}`
     case 'laneId':
-      return `lane ${text(before.laneId)} → ${text(after.laneId)}`
+      return `lane ${laneLabel(before.laneId, lanes.before)} → ${laneLabel(after.laneId, lanes.after)}`
     case 'owner':
       return `owner ${text(before.audit.owner)} → ${text(after.audit.owner)}`
     case 'system':
@@ -121,8 +147,8 @@ function describeField(field: ChangedField, before: ProcessElement, after: Proce
 }
 
 /** Plain-English summary of what changed on one step, e.g. `Manual task → Service task · wait 1 day → 0`. */
-export function describeChange(change: ElementChange): string {
-  return change.fields.map((field) => describeField(field, change.before, change.after)).join(' · ')
+export function describeChange(change: ElementChange, laneNames: LaneNames = {}): string {
+  return change.fields.map((field) => describeField(field, change.before, change.after, laneNames)).join(' · ')
 }
 
 /** `3 removed, 2 changed, 1 added, 1 pain point not addressed` (zero counts are left out). */
@@ -172,7 +198,7 @@ export function buildCompareModel(
       id: `changed:${change.id}`,
       kind: 'changed',
       title: change.after.name ? change.after.name : titleOf(change.before),
-      detail: describeChange(change),
+      detail: describeChange(change, { before: asIs.laneNames, after: toBe.laneNames }),
       elementId: change.id,
     })
   }
