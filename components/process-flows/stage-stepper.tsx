@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 export function StageStepper({ stages, className }: { stages: readonly Stage[]; className?: string }) {
   return (
     <nav aria-label="Process flow progress" className={cn('overflow-x-auto', className)}>
-      <ol className="flex min-w-max items-start gap-1">
+      <ol className="flex min-w-[600px] items-start gap-1">
         {stages.map((stage, index) => {
           const groupStart = index === 0 || stages[index - 1].group !== stage.group
           const fullLabel = stage.group === 'Outcome' ? stage.label : `${stage.group} ${stage.label}`
@@ -18,7 +18,8 @@ export function StageStepper({ stages, className }: { stages: readonly Stage[]; 
             <li
               key={`${stage.group}-${stage.label}`}
               aria-current={stage.state === 'current' ? 'step' : undefined}
-              className={cn('flex min-w-[104px] flex-1 flex-col gap-1.5', groupStart && index > 0 && 'ml-3')}
+              className={cn('flex flex-col gap-1.5',
+                stage.group === 'Outcome' ? 'flex-none' : 'min-w-0 flex-1', groupStart && index > 0 && 'ml-2')}
             >
               <span
                 className={cn(

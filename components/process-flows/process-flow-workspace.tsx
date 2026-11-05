@@ -309,8 +309,9 @@ function ModelPane({
           return result
         }}
       />
-      <div className="flex h-[600px] min-h-0 overflow-hidden rounded-lg border border-border bg-card">
-        <div className="min-w-0 flex-1">
+      {/* Side by side on wide screens; below `lg` the panel stacks under the canvas so neither is squeezed. */}
+      <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card lg:h-[600px] lg:flex-row">
+        <div className="h-[520px] min-w-0 lg:h-auto lg:flex-1">
           <BpmnEditor
             xml={shown.xml}
             readOnly={!editable}
@@ -319,7 +320,7 @@ function ModelPane({
             onXmlChange={onXmlChange}
           />
         </div>
-        <div className="w-80 shrink-0 border-l border-border">
+        <div className="max-h-[480px] overflow-y-auto border-t border-border lg:max-h-none lg:w-80 lg:shrink-0 lg:border-l lg:border-t-0">
           <ElementPropertiesPanel
             editor={editor}
             selectedId={selected}
