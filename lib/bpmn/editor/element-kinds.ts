@@ -100,7 +100,7 @@ export function isFlowNodeKind(kind: ShapeKind): boolean {
   )
 }
 
-/** Only tasks, pools and unknown boxes are resizable; events and gateways keep BPMN sizes. */
+/** Tasks, pools, lanes and unknown boxes are resizable; events and gateways keep BPMN sizes. */
 export function isResizableKind(kind: ShapeKind): boolean {
-  return kind === 'task' || kind === 'participant' || kind === 'unknown'
+  return kind === 'task' || kind === 'participant' || kind === 'lane' || kind === 'unknown'
 }

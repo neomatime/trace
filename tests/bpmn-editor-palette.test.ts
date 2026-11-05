@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { filterPalette, PALETTE_ENTRIES, paletteGroup } from '../lib/bpmn/editor/palette.ts'
+import { filterPalette, PALETTE_ENTRIES, paletteEntryFor, paletteGroup } from '../lib/bpmn/editor/palette.ts'
 import { STAGE1_SHAPE_TYPES } from '../lib/bpmn/editor/element-kinds.ts'
 
 const labels = (entries: readonly { label: string }[]) => entries.map((e) => e.label)
@@ -17,21 +17,36 @@ test('basics carry the BPMN name as secondary text', () => {
   assert.equal(byLabel.get('End'), 'End event')
 })
 
-test('the more group lists the three specialised task types', () => {
+test('the more group lists the specialised task types, then pool and lane', () => {
   assert.deepEqual(
     paletteGroup('more').map((e) => e.bpmnType),
-    ['bpmn:UserTask', 'bpmn:ManualTask', 'bpmn:ServiceTask'],
+    ['bpmn:UserTask', 'bpmn:ManualTask', 'bpmn:ServiceTask', 'bpmn:Participant', 'bpmn:Lane'],
   )
 })
 
-test('every entry creates a Stage 1 flow node; pools and lanes are not offered yet', () => {
+test('pool and lane entries use plain names with the BPMN name as secondary text', () => {
+  const pool = paletteEntryFor('bpmn:Participant')
+  const lane = paletteEntryFor('bpmn:Lane')
+  assert.equal(pool?.label, 'Process (pool)')
+  assert.equal(pool?.bpmnName, 'Pool (participant)')
+  assert.equal(lane?.label, 'Lane')
+  assert.equal(lane?.bpmnName, 'Lane')
+  assert.equal(pool?.group, 'more')
+  assert.equal(lane?.group, 'more')
+})
+
+test('every entry creates a Stage 1 shape', () => {
   const stage1 = new Set<string>(STAGE1_SHAPE_TYPES)
   for (const entry of PALETTE_ENTRIES) {
     assert.ok(stage1.has(entry.bpmnType), `${entry.bpmnType} is a Stage 1 type`)
-    assert.notEqual(entry.bpmnType, 'bpmn:Participant')
-    assert.notEqual(entry.bpmnType, 'bpmn:Lane')
   }
   assert.equal(new Set(PALETTE_ENTRIES.map((e) => e.id)).size, PALETTE_ENTRIES.length, 'ids are unique')
+})
+
+test('searching for pool or lane finds them', () => {
+  assert.deepEqual(labels(filterPalette('pool')), ['Process (pool)'])
+  assert.deepEqual(labels(filterPalette('participant')), ['Process (pool)'])
+  assert.deepEqual(labels(filterPalette('lane')), ['Lane'])
 })
 
 test('an empty or blank query returns every entry in palette order', () => {

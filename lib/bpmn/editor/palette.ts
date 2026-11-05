@@ -19,6 +19,8 @@ export type PaletteIcon =
   | 'manual-task'
   | 'service-task'
   | 'exclusive-gateway'
+  | 'pool'
+  | 'lane'
 
 export interface PaletteEntry {
   /** Stable id, also used for test ids and React keys. */
@@ -35,9 +37,9 @@ export interface PaletteEntry {
 }
 
 /**
- * Everything the editor can create from the palette today (Stage 1 flow
- * nodes). Pools and lanes are Stage 1 too, but their create/edit behaviour
- * arrives with Task 12, so they are deliberately not listed yet.
+ * Everything the editor can create from the palette today: the Stage 1 flow
+ * nodes, then pools and lanes. A pool added to a diagram without one wraps
+ * the existing steps; a lane splits the selected (or only) pool.
  */
 export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
   {
@@ -102,6 +104,24 @@ export const PALETTE_ENTRIES: readonly PaletteEntry[] = [
     hint: 'A system does this step on its own.',
     group: 'more',
     icon: 'service-task',
+  },
+  {
+    id: 'pool',
+    bpmnType: 'bpmn:Participant',
+    label: 'Process (pool)',
+    bpmnName: 'Pool (participant)',
+    hint: 'A frame for one organisation or process; steps go inside it.',
+    group: 'more',
+    icon: 'pool',
+  },
+  {
+    id: 'lane',
+    bpmnType: 'bpmn:Lane',
+    label: 'Lane',
+    bpmnName: 'Lane',
+    hint: 'Splits a pool by who does the work, such as a role or team.',
+    group: 'more',
+    icon: 'lane',
   },
 ]
 

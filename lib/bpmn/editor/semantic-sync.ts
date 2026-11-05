@@ -85,9 +85,44 @@ export function syncDefinitions(
   /** Kept as-is: unmanaged types, and elements never drawn (no DI). */
   const isUntouched = (bo: ModdleElement) => !onCanvas.has(bo.id) && !isDeleted(bo)
 
-  const processes = ((definitions.rootElements ?? []) as ModdleElement[]).filter(
-    (e) => e.$type === 'bpmn:Process',
-  )
+  // 0. Processes follow their pools: a new pool brings its process in, a
+  //    deleted pool takes its process (and everything in it) out.
+  const keptPoolProcesses = new Set<ModdleElement>()
+  for (const shape of snapshot.shapes) {
+    if (shape.type === 'bpmn:Participant' && shape.businessObject.processRef) {
+      keptPoolProcesses.add(shape.businessObject.processRef)
+    }
+  }
+  const removedProcesses = new Set<ModdleElement>()
+  if (root.$type === 'bpmn:Collaboration') {
+    for (const participant of (root.participants ?? []) as ModdleElement[]) {
+      if (!isDeleted(participant) || !participant.processRef) continue
+      if (!keptPoolProcesses.has(participant.processRef)) removedProcesses.add(participant.processRef)
+    }
+  }
+  const rootElements = ((definitions.rootElements ?? []) as ModdleElement[]).filter((e) => !removedProcesses.has(e))
+  for (const process of keptPoolProcesses) {
+    if (rootElements.includes(process)) continue
+    process.$parent = definitions
+    rootElements.push(process)
+  }
+  definitions.rootElements = rootElements
+  /** Ids of everything that went away with a removed process. */
+  const removedIds = new Set<string>()
+  const collectIds = (container: ModdleElement) => {
+    for (const element of (container.flowElements ?? []) as ModdleElement[]) {
+      removedIds.add(element.id)
+      if (element.flowElements) collectIds(element)
+    }
+  }
+  for (const process of removedProcesses) {
+    removedIds.add(process.id)
+    collectIds(process)
+  }
+  /** A message flow end that no longer exists anywhere. */
+  const isGone = (bo: ModdleElement | undefined) => !bo || removedIds.has(bo.id) || isDeleted(bo)
+
+  const processes = rootElements.filter((e) => e.$type === 'bpmn:Process')
 
   const ancestry = (id: string) => {
     const lanes: ModdleElement[] = []
@@ -207,7 +242,9 @@ export function syncDefinitions(
     }
     root.participants = kept
     root.messageFlows = [
-      ...((root.messageFlows ?? []) as ModdleElement[]).filter(isUntouched),
+      ...((root.messageFlows ?? []) as ModdleElement[]).filter(
+        (flow) => isUntouched(flow) && !isGone(flow.sourceRef) && !isGone(flow.targetRef),
+      ),
       ...snapshot.connections
         .filter((c) => c.type === 'bpmn:MessageFlow' && c.businessObject.sourceRef)
         .map((c) => c.businessObject),

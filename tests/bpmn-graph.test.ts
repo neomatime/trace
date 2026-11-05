@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { emptyProcessXml, parseBpmnXml, setAuditFieldsInXml } from '../lib/bpmn/graph.ts'
 import { buildCompareXml } from '../lib/bpmn/compare.ts'
 import { createModdle } from '../lib/bpmn/trace-moddle.ts'
+import { computeMetrics } from '../modules/process-flows/metrics.ts'
 import type { AuditFields } from '../types/process-flow.ts'
 
 const FOREIGN_XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -118,6 +119,26 @@ test('parses lanes into laneId and flows into edges', async () => {
   assert.equal(edges.get('Msg_1')?.sourceId, 'Task_2')
   assert.equal(edges.get('Msg_1')?.targetId, 'Task_3')
   assert.equal(parsed.graph.edges.length, 3)
+})
+
+test('moving a node between lanes in XML changes its laneId', async () => {
+  // Hand edit: Task_2 leaves Lane_B ("Manager") for Lane_A ("Clerk").
+  const edited = FOREIGN_XML.replace(
+    /\s*<bpmn:flowNodeRef>Task_2<\/bpmn:flowNodeRef>/,
+    '',
+  ).replace(
+    '<bpmn:flowNodeRef>Task_1</bpmn:flowNodeRef>',
+    '<bpmn:flowNodeRef>Task_1</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>Task_2</bpmn:flowNodeRef>',
+  )
+  assert.notEqual(edited, FOREIGN_XML)
+  const before = await parseBpmnXml(FOREIGN_XML)
+  const after = await parseBpmnXml(edited)
+  assert.ok(before.ok && after.ok)
+  assert.equal(before.graph.elements.find((e) => e.id === 'Task_2')?.laneId, 'Lane_B')
+  assert.equal(after.graph.elements.find((e) => e.id === 'Task_2')?.laneId, 'Lane_A')
+  // Task_1 -> Task_2 no longer crosses lanes, so the hand-off disappears.
+  assert.equal(computeMetrics(before.graph).handoffs, 1)
+  assert.equal(computeMetrics(after.graph).handoffs, 0)
 })
 
 test('foreign BPMN without TRACE data yields empty audit fields', async () => {

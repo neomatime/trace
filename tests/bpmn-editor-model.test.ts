@@ -88,6 +88,8 @@ test('default sizes and capabilities follow BPMN conventions', () => {
   assert.ok(isResizableKind('task'))
   assert.ok(!isResizableKind('start-event'))
   assert.ok(!isResizableKind('exclusive-gateway'))
+  assert.ok(isResizableKind('participant'))
+  assert.ok(isResizableKind('lane'), 'lanes resize since Task 12')
 })
 
 test('planDiagram nests lanes in the pool and flow nodes in their lane', async () => {
