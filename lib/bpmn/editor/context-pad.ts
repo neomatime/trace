@@ -7,8 +7,10 @@ import type ElementFactory from 'diagram-js/lib/core/ElementFactory.js'
 import type Connect from 'diagram-js/lib/features/connect/Connect.js'
 import type Create from 'diagram-js/lib/features/create/Create.js'
 import type Modeling from 'diagram-js/lib/features/modeling/Modeling.js'
+import type Rules from 'diagram-js/lib/features/rules/Rules.js'
 import type Selection from 'diagram-js/lib/features/selection/Selection.js'
 import type { Element, Shape } from 'diagram-js/lib/model/Types.js'
+import { resolveDeletable } from './delete-policy.ts'
 import { isFlowNodeKind, shapeKindOf } from './element-kinds.ts'
 import { iconSvg, type PadIcon } from './icons.ts'
 import { findAppendPosition, type Rect } from './placement.ts'
@@ -50,7 +52,7 @@ const APPEND_CHOICES: readonly AppendChoice[] = [
  * drop it anywhere, still connected), "Connect to..." and "Delete".
  */
 export class TraceContextPadProvider {
-  static $inject = ['contextPad', 'modeling', 'elementFactory', 'create', 'connect', 'canvas', 'elementRegistry', 'selection']
+  static $inject = ['contextPad', 'modeling', 'elementFactory', 'create', 'connect', 'canvas', 'elementRegistry', 'selection', 'rules']
 
   private readonly modeling: Modeling
   private readonly elementFactory: ElementFactory
@@ -59,6 +61,7 @@ export class TraceContextPadProvider {
   private readonly canvas: Canvas
   private readonly registry: ElementRegistry
   private readonly selection: Selection
+  private readonly rules: Rules
 
   constructor(
     contextPad: ContextPad,
@@ -69,6 +72,7 @@ export class TraceContextPadProvider {
     canvas: Canvas,
     registry: ElementRegistry,
     selection: Selection,
+    rules: Rules,
   ) {
     this.modeling = modeling
     this.elementFactory = elementFactory
@@ -77,11 +81,12 @@ export class TraceContextPadProvider {
     this.canvas = canvas
     this.registry = registry
     this.selection = selection
+    this.rules = rules
     contextPad.registerProvider(this)
   }
 
   getContextPadEntries(element: Element): ContextPadEntries {
-    if (isConnection(element)) return { delete: this.deleteEntry([element]) }
+    if (isConnection(element)) return this.deleteEntries([element])
     const kind = kindOf(element)
     if (!isFlowNodeKind(kind)) return {} // pools and lanes: editing arrives with Task 12
 
@@ -99,12 +104,11 @@ export class TraceContextPadProvider {
         },
       }
     }
-    entries.delete = this.deleteEntry([element])
-    return entries
+    return { ...entries, ...this.deleteEntries([element]) }
   }
 
   getMultiElementContextPadEntries(elements: Element[]): ContextPadEntries {
-    return { delete: this.deleteEntry(elements) }
+    return this.deleteEntries(elements)
   }
 
   /** Append a new flow node to `source`, positioned and connected. Returns it. */
@@ -146,15 +150,25 @@ export class TraceContextPadProvider {
     }
   }
 
-  private deleteEntry(elements: Element[]): ContextPadEntry {
+  /** What the `elements.delete` rule lets go (e.g. never a lane). */
+  private deletable(elements: Element[]): Element[] {
+    return resolveDeletable(this.rules.allowed('elements.delete', { elements }), elements)
+  }
+
+  /** A Delete entry honouring the delete rule; none when nothing may go. */
+  private deleteEntries(elements: Element[]): ContextPadEntries {
+    if (!this.deletable(elements).length) return {}
     return {
-      group: 'edit',
-      html: entryHtml('delete', 'Delete', 'trace-pad-delete'),
-      title: 'Delete (Del)',
-      action: {
-        click: () => {
-          this.modeling.removeElements([...elements] as never)
-          this.canvas.focus()
+      delete: {
+        group: 'edit',
+        html: entryHtml('delete', 'Delete', 'trace-pad-delete'),
+        title: 'Delete (Del)',
+        action: {
+          click: () => {
+            const removable = this.deletable(elements)
+            if (removable.length) this.modeling.removeElements(removable as never)
+            this.canvas.focus()
+          },
         },
       },
     }

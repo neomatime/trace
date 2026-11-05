@@ -114,21 +114,32 @@ export default function BpmnEditorCanvas({
     setHistory((prev) => (prev.canUndo === next.canUndo && prev.canRedo === next.canRedo ? prev : next))
   }
 
+  /**
+   * Import, then restore everything an import clears: history state, compare
+   * markers and issue badges. Used by prop-driven loads and by the handle's
+   * `importXml`, so both re-validate.
+   */
+  const importInto = async (editor: ProcessEditor, next: string) => {
+    await editor.importXml(next)
+    if (instance.current !== editor) return
+    refreshHistory(editor)
+    editor.setCompareStates(latest.current.compareStates)
+    const live = validator.current
+    if (live) {
+      // the import dropped every badge: re-apply even an unchanged issue set
+      live.reset()
+      live.notify(next)
+      await live.flush()
+    } else {
+      editor.setIssues(latest.current.issues)
+    }
+  }
+
   const load = (editor: ProcessEditor, next: string) => {
     shownXml.current = next
-    editor
-      .importXml(next)
+    importInto(editor, next)
       .then(() => {
-        if (instance.current !== editor) return
-        setError(null)
-        refreshHistory(editor)
-        editor.setCompareStates(latest.current.compareStates)
-        if (validator.current) {
-          validator.current.notify(next)
-          void validator.current.flush()
-        } else {
-          editor.setIssues(latest.current.issues)
-        }
+        if (instance.current === editor) setError(null)
       })
       .catch((reason: unknown) => {
         if (instance.current !== editor) return
@@ -212,7 +223,7 @@ export default function BpmnEditorCanvas({
         return editor
       }
       return {
-        importXml: (next) => live().importXml(next),
+        importXml: (next) => importInto(live(), next),
         exportXml: () => live().exportXml(),
         onSelection: (cb) => live().onSelection(cb),
         onChange: (cb) => live().onChange(cb),
@@ -233,6 +244,8 @@ export default function BpmnEditorCanvas({
         addElement: (type) => instance.current?.addElement(type) ?? null,
       }
     },
+    // importInto only reads refs and calls state setters, so the handle can stay stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   )
 

@@ -33,6 +33,12 @@ export interface LiveValidator<I> {
   notify(input: I): void
   /** Check the pending input now (e.g. right after an import). */
   flush(): Promise<void>
+  /**
+   * The canvas was cleared (re-import): forget what is shown, so the next
+   * result is applied even if it equals the last one, and drop checks of
+   * the replaced diagram that are still running.
+   */
+  reset(): void
   /** Stop: cancel the timer and ignore checks still running. */
   dispose(): void
 }
@@ -83,6 +89,10 @@ export function createLiveValidator<I, T>(options: LiveValidatorOptions<I, T>): 
       }, options.delayMs)
     },
     flush: run,
+    reset() {
+      shown = null
+      generation += 1
+    },
     dispose() {
       disposed = true
       pending = null

@@ -177,6 +177,49 @@ test('flush runs a pending check immediately; dispose cancels everything', async
   assert.deepEqual(applied, ['now'])
 })
 
+test('after reset, an equal result IS applied again (canvas was cleared by a re-import)', async () => {
+  const clock = fakeTimers()
+  const applied: ValidationIssue[][] = []
+  const same = [warn('This decision has only one path out.', 'g')]
+  const validator = createLiveValidator<string, ValidationIssue[]>({
+    delayMs: 400,
+    timers: clock.api,
+    produce: async () => same.map((issue) => ({ ...issue })),
+    apply: (result) => applied.push(result),
+    equals: sameIssues,
+  })
+  validator.notify('xml')
+  await validator.flush()
+  assert.equal(applied.length, 1)
+
+  validator.reset()
+  validator.notify('xml')
+  await validator.flush()
+  assert.equal(applied.length, 2, 're-applied after reset')
+  assert.deepEqual(applied[1], same)
+})
+
+test('reset also drops a check that was running before it', async () => {
+  const clock = fakeTimers()
+  const releases: Array<() => void> = []
+  const applied: string[] = []
+  const validator = createLiveValidator<string, string>({
+    delayMs: 400,
+    timers: clock.api,
+    produce: (input) =>
+      new Promise<string>((resolve) => {
+        releases.push(() => resolve(input))
+      }),
+    apply: (result) => applied.push(result),
+  })
+  validator.notify('before-import')
+  const running = validator.flush()
+  validator.reset()
+  releases[0]()
+  await running
+  assert.deepEqual(applied, [], 'result for the replaced diagram is dropped')
+})
+
 test('flush with nothing pending does nothing', async () => {
   const clock = fakeTimers()
   let runs = 0

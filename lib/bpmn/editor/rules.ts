@@ -1,5 +1,6 @@
 import RuleProvider from 'diagram-js/lib/features/rules/RuleProvider.js'
 import type EventBus from 'diagram-js/lib/core/EventBus.js'
+import { excludeLanes } from './delete-policy.ts'
 import { isFlowNodeKind, isResizableKind, shapeKindOf } from './element-kinds.ts'
 
 /** Minimal element view the rules need (diagram-js shapes, connections and roots). */
@@ -126,9 +127,7 @@ export default class TraceRules extends RuleProvider {
     })
 
     // Lanes are removed with their pool only; lane editing arrives with Task 12.
-    this.addRule('elements.delete', (context: { elements: El[] }) =>
-      context.elements.filter((element) => kindOf(element) !== 'lane'),
-    )
+    this.addRule('elements.delete', (context: { elements: El[] }) => excludeLanes(context.elements))
 
     this.addRule('connection.reconnect', (context: { connection: El; source?: El; target?: El }) => {
       const type = connectionTypeBetween(context.source, context.target)
