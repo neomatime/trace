@@ -5,6 +5,7 @@ import {
   applyDecision,
   canCreateRecommendation,
   canDecide,
+  guardSuggestionAction,
   markRecommendationCreated,
   mergeSuggestions,
   suggestionId,
@@ -214,4 +215,21 @@ test('decisions survive a recompute where the same rule fires again', () => {
 test('an empty To-Be produces no rule suggestions and does not throw', () => {
   const empty: ProcessGraph = { elements: [], edges: [] }
   assert.deepEqual(mergeSuggestions('pf', runRules(empty, empty), [], store), [])
+})
+
+test('guardSuggestionAction gates both kinds for every role with exact errors', () => {
+  const DECIDE_ERROR = 'Only HIMARK staff can decide on suggestions.'
+  const CREATE_ERROR = "You don't have permission to draft recommendations."
+  for (const role of USER_ROLES) {
+    const decide = guardSuggestionAction(role, 'decide')
+    const create = guardSuggestionAction(role, 'create')
+    if (canDecide(role)) assert.deepEqual(decide, { ok: true }, 'decide ' + role)
+    else assert.deepEqual(decide, { ok: false, error: DECIDE_ERROR }, 'decide ' + role)
+    if (canCreateRecommendation(role)) assert.deepEqual(create, { ok: true }, 'create ' + role)
+    else assert.deepEqual(create, { ok: false, error: CREATE_ERROR }, 'create ' + role)
+  }
+  assert.deepEqual(guardSuggestionAction('Viewer', 'decide'), { ok: false, error: DECIDE_ERROR })
+  assert.deepEqual(guardSuggestionAction('Viewer', 'create'), { ok: false, error: CREATE_ERROR })
+  assert.deepEqual(guardSuggestionAction('Reviewer', 'decide'), { ok: true })
+  assert.deepEqual(guardSuggestionAction('Reviewer', 'create'), { ok: false, error: CREATE_ERROR })
 })

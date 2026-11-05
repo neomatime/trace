@@ -113,6 +113,18 @@ export function canCreateRecommendation(role: UserRole): boolean {
   return hasPermission(role, 'recommendation:create')
 }
 
+export const DECIDE_REFUSED = 'Only HIMARK staff can decide on suggestions.'
+export const CREATE_REFUSED = "You don't have permission to draft recommendations."
+
+/** Action-layer permission check, so a bypassed UI still cannot decide or draft. */
+export function guardSuggestionAction(
+  role: UserRole,
+  kind: 'decide' | 'create',
+): { ok: true } | { ok: false; error: string } {
+  if (kind === 'decide') return canDecide(role) ? { ok: true } : { ok: false, error: DECIDE_REFUSED }
+  return canCreateRecommendation(role) ? { ok: true } : { ok: false, error: CREATE_REFUSED }
+}
+
 export function summarise(items: readonly ProcessSuggestion[]): {
   proposed: number
   accepted: number
