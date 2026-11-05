@@ -86,6 +86,11 @@ export interface ElementPropertiesPanelProps {
   evidenceHref?: string
   /** Shown as a small note while read-only, e.g. "approved versions can't be edited". */
   lockedReason?: string
+  /**
+   * Keep "Raise finding" / "Link recommendation" enabled while read-only (default false),
+   * e.g. to raise a finding from an approved, locked version.
+   */
+  actionsWhenReadOnly?: boolean
 }
 
 export function ElementPropertiesPanel(props: ElementPropertiesPanelProps) {
@@ -152,6 +157,7 @@ function PanelBody({
   onLinkRecommendation,
   evidenceHref,
   lockedReason,
+  actionsWhenReadOnly = false,
 }: ElementPropertiesPanelProps & { editor: ProcessEditor; selectedId: EntityId }) {
   const baseId = useId()
   const [initial] = useState(() => read(editor, selectedId))
@@ -298,6 +304,7 @@ function PanelBody({
     error ? `${fieldId(key)}-error` : hasHint ? `${fieldId(key)}-hint` : undefined
 
   const lock = { disabled: readOnly, 'aria-disabled': readOnly || undefined } as const
+  const actionLock = actionsWhenReadOnly ? {} : lock
   const text = (key: TextFieldKey, label: string, hint?: string) => (
     <Field id={fieldId(key)} label={label} hint={hint}>
       <Input
@@ -415,7 +422,7 @@ function PanelBody({
                   onRaiseFinding(selectedId)
                 }}
                 className={actionButton}
-                {...lock}
+                {...actionLock}
               >
                 Raise finding
               </button>
@@ -428,7 +435,7 @@ function PanelBody({
                   onLinkRecommendation(selectedId)
                 }}
                 className={actionButton}
-                {...lock}
+                {...actionLock}
               >
                 Link recommendation
               </button>
