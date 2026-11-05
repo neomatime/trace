@@ -9,7 +9,7 @@ export interface ProcessMetrics {
   waitMinutes: number
 }
 
-const STEP_TYPES: ReadonlySet<string> = new Set([
+export const STEP_TYPES: ReadonlySet<string> = new Set([
   'bpmn:Task',
   'bpmn:UserTask',
   'bpmn:ManualTask',

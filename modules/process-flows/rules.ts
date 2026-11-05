@@ -1,7 +1,7 @@
 import type { EntityId, IsoDateTime } from '../../types/common.ts'
 import type { Recommendation } from '../../types/recommendation.ts'
 import type { ProcessElement, ProcessGraph, ProcessSuggestion } from '../../types/process-flow.ts'
-import { computeMetrics } from './metrics.ts'
+import { STEP_TYPES, computeMetrics } from './metrics.ts'
 
 export type SuggestionDraft = Omit<
   ProcessSuggestion,
@@ -17,19 +17,6 @@ export interface ProcessRule {
 // Placeholder thresholds: process engineers to confirm.
 export const WAIT_THRESHOLD_MINUTES = 4320
 export const MAX_HANDOFFS = 5
-
-const STEP_TYPES: ReadonlySet<string> = new Set([
-  'bpmn:Task',
-  'bpmn:UserTask',
-  'bpmn:ManualTask',
-  'bpmn:ServiceTask',
-  'bpmn:ScriptTask',
-  'bpmn:BusinessRuleTask',
-  'bpmn:SendTask',
-  'bpmn:ReceiveTask',
-  'bpmn:SubProcess',
-  'bpmn:CallActivity',
-])
 
 function predecessorSteps(graph: ProcessGraph, element: ProcessElement): ProcessElement[] {
   const byId = new Map(graph.elements.map((e) => [e.id, e]))
