@@ -18,6 +18,24 @@ export interface ProcessEditor {
   redo(): void
   zoomBy(delta: number): void
   destroy(): void
+
+  // Task 10 additions (usability layer). All are safe to call in read-only
+  // mode: editing calls do nothing there and the queries return false/null.
+
+  /** Whether there is a change to undo / redo. */
+  canUndo(): boolean
+  canRedo(): boolean
+  /** Select an element and centre it in the view. False if it is not on the canvas. */
+  selectElement(elementId: EntityId): boolean
+  /** Id of the best name match (exact, then starts-with, then contains), or null. */
+  findElement(query: string): EntityId | null
+  /** Start dragging a new element of `bpmnType` from a palette button. */
+  startCreate(bpmnType: string, event: MouseEvent): void
+  /**
+   * Add a new element of `bpmnType` at a free spot near the centre of the
+   * view (inside the lane/pool there, if any) and select it.
+   */
+  addElement(bpmnType: string): EntityId | null
 }
 
 /** didi module declaration as accepted by diagram-js (`import('didi').ModuleDeclaration`). */

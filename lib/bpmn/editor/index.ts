@@ -6,7 +6,12 @@ import type EventBus from 'diagram-js/lib/core/EventBus.js'
 import type CommandStack from 'diagram-js/lib/command/CommandStack.js'
 import type Overlays from 'diagram-js/lib/features/overlays/Overlays.js'
 import type ZoomScroll from 'diagram-js/lib/navigation/zoomscroll/ZoomScroll.js'
+import type Create from 'diagram-js/lib/features/create/Create.js'
+import type Modeling from 'diagram-js/lib/features/modeling/Modeling.js'
+import type Rules from 'diagram-js/lib/features/rules/Rules.js'
+import type Selection from 'diagram-js/lib/features/selection/Selection.js'
 import type { Connection, Element, Shape } from 'diagram-js/lib/model/Types.js'
+import AutoResizeModule from 'diagram-js/lib/features/auto-resize/index.js'
 import BendpointsModule from 'diagram-js/lib/features/bendpoints/index.js'
 import ConnectModule from 'diagram-js/lib/features/connect/index.js'
 import CreateModule from 'diagram-js/lib/features/create/index.js'
@@ -27,18 +32,24 @@ import type { EntityId } from '../../../types/common.ts'
 import type { AuditFields } from '../../../types/process-flow.ts'
 import { readAuditFields } from '../graph.ts'
 import TraceCommands, { UPDATE_AUDIT_FIELDS } from './audit-command.ts'
+import TraceAutoResizeProvider from './auto-resize.ts'
 import TraceConnectionParentBehaviour from './behaviours.ts'
 import { planDiagram } from './diagram-plan.ts'
 import BpmnDocument from './document.ts'
 import TraceElementFactory from './element-factory.ts'
+import { findElementByName } from './element-search.ts'
+import { isFlowNodeKind, shapeKindOf } from './element-kinds.ts'
+import TraceKeyboardBindings from './keyboard.ts'
 import TraceLayouter from './layouter.ts'
 import { CanvasMarkers } from './markers.ts'
+import { findAppendPosition } from './placement.ts'
 import TraceRenderer from './renderer.ts'
 import TraceRules from './rules.ts'
 import { syncDefinitions, type DiagramSnapshot } from './semantic-sync.ts'
 import type { EditorModule, ProcessEditor, ProcessEditorOptions } from './types.ts'
 
 export type { CompareState, EditorModule, ProcessEditor, ProcessEditorOptions } from './types.ts'
+export { traceContextPadModule } from './context-pad.ts'
 
 /** TRACE BPMN core: semantic document, BPMN element factory and renderer. */
 export const traceCoreModule: EditorModule = {
@@ -73,8 +84,10 @@ export const VIEWER_MODULES: readonly EditorModule[] = [
 ]
 
 /**
- * Modules for editing. Palette and context pad are deliberately absent:
- * Task 10 plugs them in through `ProcessEditorOptions.additionalModules`.
+ * Modules for editing. The context pad is deliberately absent: callers plug
+ * it in through `ProcessEditorOptions.additionalModules`
+ * (`traceContextPadModule`). The palette is a React component that drives
+ * `ProcessEditor.addElement` / `startCreate`.
  */
 export const MODELER_MODULES: readonly EditorModule[] = [
   ...VIEWER_MODULES,
@@ -87,10 +100,32 @@ export const MODELER_MODULES: readonly EditorModule[] = [
   EditorActionsModule,
   KeyboardModule,
   KeyboardMoveSelectionModule,
+  AutoResizeModule,
+  {
+    // Task 10: Ctrl/Cmd+0 fits; pools without lanes grow to fit new steps.
+    __init__: ['traceKeyboardBindings', 'traceAutoResizeProvider'],
+    traceKeyboardBindings: ['type', TraceKeyboardBindings],
+    traceAutoResizeProvider: ['type', TraceAutoResizeProvider],
+  },
 ]
 
 const isRoot = (element: Element) => !element.parent
 const isConnection = (element: Element): element is Connection => Array.isArray((element as Connection).waypoints)
+
+/** Centre of a shape, or the middle waypoint of a connection. */
+function midOf(element: Element): { x: number; y: number } {
+  if (isConnection(element)) {
+    const points = element.waypoints
+    const a = points[Math.floor((points.length - 1) / 2)]
+    const b = points[Math.ceil((points.length - 1) / 2)]
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+  }
+  const shape = element as Shape
+  return { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 }
+}
+
+const contains = (shape: Shape, point: { x: number; y: number }) =>
+  point.x >= shape.x && point.x <= shape.x + shape.width && point.y >= shape.y && point.y <= shape.y + shape.height
 
 function snapshotOf(registry: ElementRegistry): DiagramSnapshot {
   const shapes: DiagramSnapshot['shapes'][number][] = []
@@ -145,6 +180,10 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
   const zoomScroll = get<ZoomScroll>('zoomScroll')
   const commandStack = options.readOnly ? null : get<CommandStack>('commandStack')
   const markers = new CanvasMarkers(canvas, registry, get<Overlays>('overlays'))
+  const selection = get<Selection>('selection')
+  const modeling = options.readOnly ? null : get<Modeling>('modeling')
+  const create = options.readOnly ? null : get<Create>('create')
+  const rules = options.readOnly ? null : get<Rules>('rules')
   let destroyed = false
 
   const elementOrThrow = (id: EntityId): Element => {
@@ -262,6 +301,76 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
       if (destroyed) return
       destroyed = true
       diagram.destroy()
+    },
+
+    canUndo() {
+      return commandStack?.canUndo() ?? false
+    },
+
+    canRedo() {
+      return commandStack?.canRedo() ?? false
+    },
+
+    selectElement(elementId) {
+      const element = registry.get(elementId) as Element | undefined
+      if (!element || isRoot(element)) return false
+      selection.select(element)
+      const box = canvas.viewbox()
+      const mid = midOf(element)
+      canvas.viewbox({ x: mid.x - box.width / 2, y: mid.y - box.height / 2, width: box.width, height: box.height })
+      return true
+    },
+
+    findElement(query) {
+      const candidates = (registry.getAll() as Element[])
+        .filter((e) => !isRoot(e) && e.businessObject)
+        .map((e) => ({ id: e.id, name: e.businessObject.name as string | undefined }))
+      return findElementByName(candidates, query)
+    },
+
+    startCreate(bpmnType, event) {
+      if (!create) return
+      create.start(event, factory.createShape({ type: bpmnType } as never) as never)
+    },
+
+    addElement(bpmnType) {
+      if (!modeling || !rules) return null
+      const shape = factory.createShape({ type: bpmnType } as never) as Shape
+      const allowedIn = (target: Element) => rules.allowed('shape.create', { shape, target }) === true
+      const box = canvas.viewbox()
+      let centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+
+      // Deepest container under the view centre that accepts the shape,
+      // else the root process, else the first lane or pool that does.
+      const containers = (registry.getAll() as Element[]).filter(
+        (e) => !isRoot(e) && !isConnection(e) && allowedIn(e),
+      ) as Shape[]
+      const root = canvas.getRootElement() as Element
+      let target: Element | undefined = containers.filter((c) => contains(c, centre)).pop()
+      if (!target && allowedIn(root)) target = root
+      if (!target && containers.length) {
+        target = containers[0]
+        centre = midOf(target)
+      }
+      if (!target) return null
+
+      const area = target === root ? undefined : (target as Shape)
+      const obstacles = (registry.getAll() as Element[])
+        .filter((e) => !isRoot(e) && !isConnection(e) && isFlowNodeKind(shapeKindOf(e.type)))
+        .map((e) => ({ x: (e as Shape).x, y: (e as Shape).y, width: (e as Shape).width, height: (e as Shape).height }))
+      // A zero-width "source" just left of the centre: the first slot tried is the centre itself.
+      const gap = 50
+      const position = findAppendPosition({
+        source: { x: centre.x - shape.width / 2 - gap, y: centre.y - shape.height / 2, width: 0, height: shape.height },
+        size: shape,
+        obstacles,
+        container: area ? { x: area.x, y: area.y, width: area.width, height: area.height } : undefined,
+        gap,
+      })
+      const created = modeling.createShape(shape, position, target as Shape)
+      selection.select(created)
+      canvas.focus() // so Delete and Ctrl/Cmd+Z apply straight away
+      return created.id
     },
   }
 

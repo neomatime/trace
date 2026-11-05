@@ -116,10 +116,19 @@ export default class TraceRules extends RuleProvider {
       return context.newBounds.width >= min.width && context.newBounds.height >= min.height
     })
 
-    this.addRule('connection.create', (context: { source?: El; target?: El }) => {
-      const type = connectionTypeBetween(context.source, context.target)
+    this.addRule('connection.create', (context: { source?: El; target?: El; hints?: { targetParent?: El } }) => {
+      // While a shape is being created and connected in one gesture (dragged
+      // from the context pad) it has no parent yet: judge it where it will land.
+      const parent = context.hints?.targetParent
+      const target = context.target && !context.target.parent && parent ? { ...context.target, parent } : context.target
+      const type = connectionTypeBetween(context.source, target)
       return type ? { type } : false
     })
+
+    // Lanes are removed with their pool only; lane editing arrives with Task 12.
+    this.addRule('elements.delete', (context: { elements: El[] }) =>
+      context.elements.filter((element) => kindOf(element) !== 'lane'),
+    )
 
     this.addRule('connection.reconnect', (context: { connection: El; source?: El; target?: El }) => {
       const type = connectionTypeBetween(context.source, context.target)
