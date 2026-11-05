@@ -2,7 +2,6 @@ import type { AuditTypeName } from '@/types/audit-type'
 
 export type CollectionStatus = 'Complete' | 'In Progress' | 'Not Started' | 'Needs Review'
 export interface CollectionAreaMock { area:string; status:CollectionStatus; progress:number; items:string; issues:number; source:string; reviewer:string; updated:string }
-export interface WorkflowStepMock { id:string; name:string; owner:string; department:string; system:string; input:string; output:string; type:'Task'|'Approval'|'Decision'|'System'; duration:string; waiting:string; approval:boolean; control?:string; painPoint?:string; evidence:number }
 
 export const auditTemplates: Record<string,string[]> = {
   website:['Website Audit v1.0'],
@@ -35,15 +34,6 @@ export const auditTeam = [
 
 const sources:Record<string,string[]>={website:['Website Crawl','PageSpeed Insights','Google Lighthouse','Mobile Friendly Test','Security Headers','Manual Review'],brand:['Manual Review','Brand Guidelines','Asset Library','Stakeholder Interview'],digital:['Profile Review','Search Results','Channel Export','Manual Review'],workflow:['Questionnaire','Interview','Process Document','Operational Data','Observation']}
 export function createCollectionAreas(typeId:string, areas:readonly string[]):CollectionAreaMock[]{ const sourceKey=typeId==='operational-flow'?'workflow':typeId==='digital-presence'?'digital':typeId; return areas.map((area,index)=>({area,status:index<3?'Complete':index<6?'In Progress':index===6?'Needs Review':'Not Started',progress:index<3?100:index<6?60-index*4:index===6?35:0,items:`${index+2} of ${index+4}`,issues:index%4,source:sources[sourceKey]?.[index%sources[sourceKey].length]??'Manual Review',reviewer:index%2?'Thelma Dube':'Alex Reed',updated:index<7?'20 Aug 2026':'—'})) }
-
-export const workflowSteps:WorkflowStepMock[]=[
-  {id:'s1',name:'Submit Purchase Request',owner:'Requestor',department:'Business Unit',system:'SAP',input:'Approved need',output:'Purchase request',type:'Task',duration:'12 min',waiting:'0 min',approval:false,evidence:2},
-  {id:'s2',name:'Manager Approval',owner:'Line Manager',department:'Business Unit',system:'Email',input:'Purchase request',output:'Approval decision',type:'Approval',duration:'8 min',waiting:'1.4 days',approval:true,control:'Approval threshold',painPoint:'Email approval causes delays',evidence:3},
-  {id:'s3',name:'Source Supplier',owner:'Buyer',department:'Procurement',system:'SAP + Email',input:'Approved request',output:'Supplier selection',type:'Task',duration:'3.2 hrs',waiting:'2.1 days',approval:false,painPoint:'Manual quote comparison',evidence:4},
-  {id:'s4',name:'Create Purchase Order',owner:'Buyer',department:'Procurement',system:'SAP',input:'Selected supplier',output:'Purchase order',type:'System',duration:'18 min',waiting:'4 hrs',approval:true,control:'Segregation of duties',evidence:2},
-  {id:'s5',name:'Receive & Match Invoice',owner:'AP Clerk',department:'Finance',system:'SAP',input:'Invoice + goods receipt',output:'Matched invoice',type:'Decision',duration:'24 min',waiting:'1.8 days',approval:false,painPoint:'High exception rate',evidence:5},
-  {id:'s6',name:'Release Supplier Payment',owner:'Finance Manager',department:'Finance',system:'SAP',input:'Matched invoice',output:'Supplier payment',type:'Approval',duration:'10 min',waiting:'1 day',approval:true,control:'Payment batch approval',evidence:3},
-]
 
 export const auditWorkspaceMeta:Record<string,{name:string;type:AuditTypeName;scope:string;status:string}>={
   'TRC-WEB-2026-0042':{name:'Oak & Pixel Website — Aug 2026',type:'Website Audit',scope:'oakandpixel.co.za',status:'Completed'},
