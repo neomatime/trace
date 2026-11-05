@@ -4,7 +4,7 @@
  * so every change resets on refresh and is not shared between users.
  */
 import type { EntityId } from '@/types/common'
-import type { ProcessFlow, ProcessModelVersion } from '@/types/process-flow'
+import type { ProcessFlow, ProcessModelVersion, ProcessSuggestion } from '@/types/process-flow'
 import { USER_ROLES, type UserRole } from '@/types/user'
 import { auditTeam } from './audit-workflows'
 import { PROCESS_FLOW_SEED_XML } from './process-flow-seed'
@@ -78,4 +78,57 @@ export const processFlowSeeds: Readonly<Record<EntityId, ProcessFlowSeed>> = {
       ...stamp,
     },
   },
+}
+
+/**
+ * DEMO DATA, NOT AI OUTPUT. These stand in for AI-generated improvement
+ * suggestions in the UI-only scope (no Atlas call is made). The Improvements tab
+ * always labels them "AI suggestion — needs review (demo data)" and always
+ * starts them as Proposed. Element ids refer to the Purchase-to-Pay seed XML.
+ */
+export const demoAiSuggestions: Readonly<Record<EntityId, readonly ProcessSuggestion[]>> = {
+  'TRC-OF-2026-0012': [
+    {
+      id: 'ai-demo-1',
+      processFlowId: 'pf-p2p',
+      source: 'ai',
+      title: 'Automate the three-way match before the purchase order is created',
+      rationale:
+        'Requisitions are reviewed by hand and then turned into purchase orders. Matching the requisition, budget and supplier data automatically would catch mismatches earlier.',
+      expectedOutcome: 'Fewer returned requisitions and a shorter time from request to purchase order.',
+      elementIds: ['UserTask_Review', 'ServiceTask_CreatePO'],
+      dependsOn: [],
+      priority: 'High',
+      effort: 'Medium',
+      status: 'Proposed',
+    },
+    {
+      id: 'ai-demo-2',
+      processFlowId: 'pf-p2p',
+      source: 'ai',
+      title: 'Add a requisition checklist so fewer requests are returned',
+      rationale:
+        'Returned requisitions loop back to the start. A short completeness checklist when the requisition is captured would reduce rework.',
+      expectedOutcome: 'Fewer loops back to the capture step, and less rework for requesters and reviewers.',
+      elementIds: ['UserTask_Capture', 'ManualTask_Return'],
+      dependsOn: [],
+      priority: 'Medium',
+      effort: 'Low',
+      status: 'Proposed',
+    },
+    {
+      id: 'ai-demo-3',
+      processFlowId: 'pf-p2p',
+      source: 'ai',
+      title: 'Send approved requisitions to the ERP without manual hand-off',
+      rationale:
+        'Once the three-way match is automated, approved requisitions can flow straight into purchase order creation instead of waiting for a person to pick them up.',
+      expectedOutcome: 'Purchase orders are issued on the same day the requisition is approved.',
+      elementIds: ['ServiceTask_CreatePO'],
+      dependsOn: ['ai-demo-1'],
+      priority: 'Medium',
+      effort: 'High',
+      status: 'Proposed',
+    },
+  ],
 }

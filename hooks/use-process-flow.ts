@@ -8,7 +8,7 @@
  * sets `error`; nothing here throws into React.
  */
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { currentProcessFlowUser, processFlowSeeds } from '@/data/mock/process-flows'
+import { currentProcessFlowUser, demoAiSuggestions, processFlowSeeds } from '@/data/mock/process-flows'
 import type { ProcessFlowUser } from '@/data/mock/process-flows'
 import {
   EMPTY_WORKSPACE,
@@ -22,8 +22,20 @@ import {
   submitModel,
 } from '@/modules/process-flows/workspace-state'
 import type { Context, Readiness, Transition, WorkspaceState } from '@/modules/process-flows/workspace-state'
+import {
+  EMPTY_SUGGESTION_STORE,
+  applyDecision,
+  markRecommendationCreated,
+} from '@/modules/process-flows/suggestion-state'
+import type { SuggestionDecision, SuggestionEdits, SuggestionStore } from '@/modules/process-flows/suggestion-state'
 import type { EntityId } from '@/types/common'
-import type { ApprovalParty, ApprovalRecord, ProcessFlow, ProcessModelVersion } from '@/types/process-flow'
+import type {
+  ApprovalParty,
+  ApprovalRecord,
+  ProcessFlow,
+  ProcessModelVersion,
+  ProcessSuggestion,
+} from '@/types/process-flow'
 
 export type ActionResult = { ok: true; createdToBe?: ProcessModelVersion } | { ok: false; error: string }
 
@@ -36,6 +48,10 @@ export interface ProcessFlowActions {
   /** Create a Draft As-Is for an audit that has no process map yet. */
   startProcessMap(name: string, xml: string): ActionResult
   clearError(): void
+  /** Record a human decision on a suggestion (never called automatically). */
+  decideSuggestion(id: EntityId, decision: SuggestionDecision, edits?: SuggestionEdits): ActionResult
+  /** Remember that a recommendation was drafted from a suggestion. */
+  markRecommendationCreated(id: EntityId): void
 }
 
 export interface UseProcessFlow {
@@ -48,8 +64,14 @@ export interface UseProcessFlow {
   /** The last refused action's message, cleared by the next successful one. */
   error: string | null
   ready: Readiness
+  /** Demo AI-style suggestions for this audit (mock data, always Proposed). */
+  aiDemo: readonly ProcessSuggestion[]
+  /** Human decisions on suggestions, keyed by suggestion id. */
+  suggestionStore: SuggestionStore
   actions: ProcessFlowActions
 }
+
+const NO_SUGGESTIONS: readonly ProcessSuggestion[] = []
 
 function seedFor(auditId: EntityId): WorkspaceState {
   const seed = processFlowSeeds[auditId]
@@ -59,6 +81,7 @@ function seedFor(auditId: EntityId): WorkspaceState {
 export function useProcessFlow(auditId: EntityId, user: ProcessFlowUser = currentProcessFlowUser): UseProcessFlow {
   const [state, setState] = useState(() => seedFor(auditId))
   const [error, setError] = useState<string | null>(null)
+  const [suggestionStore, setSuggestionStore] = useState<SuggestionStore>(EMPTY_SUGGESTION_STORE)
   /** The latest state, so actions fired back-to-back (flush, then submit) see each other's writes. */
   const latest = useRef(state)
   const sequence = useRef(0)
@@ -102,8 +125,18 @@ export function useProcessFlow(auditId: EntityId, user: ProcessFlowUser = curren
       startProcessMap: (name, xml) =>
         apply(startProcessMapState(latest.current, { auditId, name, xml }, context())),
       clearError: () => setError(null),
+      decideSuggestion: (id, decision, edits) => {
+        try {
+          const at = new Date().toISOString()
+          setSuggestionStore((store) => applyDecision(store, id, decision, user.id, at, edits))
+          return { ok: true }
+        } catch (reason) {
+          return { ok: false, error: reason instanceof Error ? reason.message : String(reason) }
+        }
+      },
+      markRecommendationCreated: (id) => setSuggestionStore((store) => markRecommendationCreated(store, id)),
     }),
-    [apply, auditId, context],
+    [apply, auditId, context, user.id],
   )
 
   const ready = useMemo(() => readiness(state), [state])
@@ -116,6 +149,8 @@ export function useProcessFlow(auditId: EntityId, user: ProcessFlowUser = curren
     loading: false,
     error,
     ready,
+    aiDemo: demoAiSuggestions[auditId] ?? NO_SUGGESTIONS,
+    suggestionStore,
     actions,
   }
 }
