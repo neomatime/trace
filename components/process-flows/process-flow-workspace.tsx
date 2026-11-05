@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, CircleDashed, GitCompareArrows, Lightbulb, Workflow, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, CircleDashed, Lightbulb, Workflow, X } from 'lucide-react'
 import { CrudEmptyState, CrudToast } from '@/components/ui/crud'
 import { PageTabs } from '@/components/ui/tabs'
 import { currentProcessFlowUser, mockUserForRole, userName } from '@/data/mock/process-flows'
@@ -17,6 +17,7 @@ import type { ApprovalParty, ApprovalRecord, ProcessModelVersion } from '@/types
 import type { UserRole } from '@/types/user'
 import { ApprovalBar } from './approval-bar'
 import { BpmnEditor } from './bpmn-editor'
+import { CompareView } from './compare-view'
 import { ElementPropertiesPanel } from './element-properties-panel'
 import { StageStepper } from './stage-stepper'
 
@@ -89,6 +90,13 @@ export function ProcessFlowWorkspace({ auditId, devRole }: ProcessFlowWorkspaceP
   }
 
   const needsToBe = asIs.status === 'Approved' && !toBe
+  const createToBe = () => {
+    const result = actions.startToBe(asIs.id)
+    if (result.ok) {
+      setTab('To-Be')
+      setToast(TO_BE_CREATED)
+    }
+  }
   const modelPaneProps = {
     actions,
     approvals,
@@ -137,13 +145,7 @@ export function ProcessFlowWorkspace({ auditId, devRole }: ProcessFlowWorkspaceP
           {can('audit:run') ? (
             <button
               type="button"
-              onClick={() => {
-                const result = actions.startToBe(asIs.id)
-                if (result.ok) {
-                  setTab('To-Be')
-                  setToast(TO_BE_CREATED)
-                }
-              }}
+              onClick={createToBe}
               className="h-9 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground"
             >
               Create To-Be
@@ -170,11 +172,7 @@ export function ProcessFlowWorkspace({ auditId, devRole }: ProcessFlowWorkspaceP
           )
         ) : null}
         {tab === 'Compare' ? (
-          <Placeholder
-            icon={<GitCompareArrows className="size-5 text-brand" aria-hidden />}
-            title="Gap view — coming next"
-            text="Compare the As-Is and To-Be side by side: what was removed, changed and added, and which pain points are still open."
-          />
+          <CompareView asIs={asIs} toBe={toBe} canCreateToBe={can('audit:run')} onCreateToBe={createToBe} />
         ) : null}
         {tab === 'Improvements' ? (
           <Placeholder
