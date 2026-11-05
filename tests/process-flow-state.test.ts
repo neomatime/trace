@@ -290,7 +290,7 @@ test('lockedReason per status', () => {
   assert.equal(lockedReason('Awaiting Client'), 'Locked — waiting for review.')
   assert.equal(
     lockedReason('Approved'),
-    "Locked — this version is approved and can't be edited. Create a new version to change it.",
+    "Locked — this version is approved and can't be edited.",
   )
 })
 

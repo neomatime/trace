@@ -69,7 +69,7 @@ function touched(model: ProcessModelVersion, changes: Partial<ProcessModelVersio
 
 /** Why a model can't be edited, or undefined when it can (Draft). */
 export function lockedReason(status: ProcessModelStatus): string | undefined {
-  if (isLocked(status)) return "Locked — this version is approved and can't be edited. Create a new version to change it."
+  if (isLocked(status)) return "Locked — this version is approved and can't be edited."
   if (status !== 'Draft') return 'Locked — waiting for review.'
   return undefined
 }
