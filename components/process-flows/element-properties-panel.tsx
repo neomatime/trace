@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { Lock } from 'lucide-react'
 import type { ElementInfo, ProcessEditor } from '@/lib/bpmn/editor'
+import { normalizeElementName } from '@/lib/bpmn/editor/label-name'
 import { paletteEntryFor } from '@/lib/bpmn/editor/palette'
 import type { EntityId } from '@/types/common'
 import type { AuditFields } from '@/types/process-flow'
@@ -19,6 +20,7 @@ import {
   type MinutesFieldKey,
   type TextFieldKey,
 } from './audit-field-form'
+import { identityKey } from './editor-identity'
 
 /**
  * Typing is committed to the editor after this much idle time and on blur.
@@ -56,6 +58,15 @@ function typeLabel(bpmnType: string): string {
     : `${entry.label} (${entry.bpmnName.toLowerCase()})`
 }
 
+const NAME_PLACEHOLDERS: Readonly<Record<string, string>> = {
+  'bpmn:SequenceFlow': 'Label this flow (e.g. Yes)',
+  'bpmn:MessageFlow': 'Label this flow (e.g. Yes)',
+  'bpmn:Participant': 'Name this process or participant',
+  'bpmn:Lane': 'Name this lane',
+}
+
+const namePlaceholder = (bpmnType: string) => NAME_PLACEHOLDERS[bpmnType] ?? 'Name this step'
+
 function read(editor: ProcessEditor, id: EntityId): { fields: AuditFields; info: ElementInfo } | null {
   try {
     const info = editor.getElementInfo(id)
@@ -82,8 +93,9 @@ export function ElementPropertiesPanel(props: ElementPropertiesPanelProps) {
   return (
     <aside aria-label="Step details" className="flex h-full min-h-0 w-full flex-col overflow-y-auto bg-card text-sm">
       {editor && selectedId ? (
-        // Keyed by element: switching selection remounts the body, so drafts never leak between steps.
-        <PanelBody key={selectedId} {...props} editor={editor} selectedId={selectedId} />
+        // Keyed by editor AND element: ids repeat across editors (As-Is / To-Be), so a swapped
+        // editor must remount the body too, and drafts never leak between steps or diagrams.
+        <PanelBody key={`${identityKey(editor)}:${selectedId}`} {...props} editor={editor} selectedId={selectedId} />
       ) : (
         <EmptyState />
       )}
@@ -148,7 +160,12 @@ function PanelBody({
   const [approval, setApproval] = useState(initial?.fields.approvalRequired ?? false)
   const [evidenceCount, setEvidenceCount] = useState(initial?.fields.evidenceIds.length ?? 0)
   const [errors, setErrors] = useState<Errors>({})
+  const [nameDraft, setNameDraft] = useState(initial?.info.name ?? '')
 
+  /** The element name the editor holds (set BEFORE writing, like `committed`). */
+  const committedName = useRef(initial?.info.name ?? '')
+  const nameRef = useRef(nameDraft)
+  const nameDirty = useRef(false)
   /** What the editor holds (set BEFORE writing so our own change event is recognised as ours). */
   const committed = useRef<AuditFields>(initial?.fields ?? { evidenceIds: [] })
   const draftsRef = useRef(drafts)
@@ -173,6 +190,20 @@ function PanelBody({
   /** Commit every dirty field as one edit. Invalid minutes are skipped, never written. */
   const flush = useCallback(() => {
     clearTimeout(timer.current)
+    if (nameDirty.current) {
+      nameDirty.current = false
+      const wanted = normalizeElementName(nameRef.current) ?? ''
+      if (wanted !== committedName.current) {
+        const previous = committedName.current
+        committedName.current = wanted
+        try {
+          if (!editor.renameElement(selectedId, nameRef.current)) committedName.current = previous
+        } catch (reason) {
+          committedName.current = previous
+          console.error('[properties-panel] could not rename', reason)
+        }
+      }
+    }
     let next = committed.current
     for (const key of dirty.current) {
       const text = draftsRef.current[key]
@@ -185,7 +216,7 @@ function PanelBody({
     }
     dirty.current.clear()
     write(next)
-  }, [write])
+  }, [write, editor, selectedId])
 
   // Anything still pending when the selection changes or the panel closes is saved, not lost.
   useEffect(() => flush, [flush])
@@ -196,6 +227,14 @@ function PanelBody({
       const latest = read(editor, selectedId)
       if (!latest) return
       setInfo(latest.info)
+      // A name change that is not ours (canvas rename, undo, redo) replaces the draft;
+      // the echo of our own write matches `committedName` and leaves typing alone.
+      if (latest.info.name !== committedName.current) {
+        committedName.current = latest.info.name
+        nameRef.current = latest.info.name
+        nameDirty.current = false
+        setNameDraft(latest.info.name)
+      }
       setEvidenceCount(latest.fields.evidenceIds.length)
       if (auditFieldsEqual(latest.fields, committed.current)) return
       clearTimeout(timer.current)
@@ -228,6 +267,23 @@ function PanelBody({
     if (draftsRef.current[key] !== canonical) {
       draftsRef.current = { ...draftsRef.current, [key]: canonical }
       setDrafts(draftsRef.current)
+    }
+  }
+
+  const editName = (text: string) => {
+    nameRef.current = text
+    setNameDraft(text)
+    nameDirty.current = true
+    clearTimeout(timer.current)
+    timer.current = setTimeout(flush, IDLE_MS)
+  }
+
+  /** Commit now and show the saved (trimmed / collapsed) name. */
+  const blurName = () => {
+    flush()
+    if (nameRef.current !== committedName.current) {
+      nameRef.current = committedName.current
+      setNameDraft(committedName.current)
     }
   }
 
@@ -287,6 +343,17 @@ function PanelBody({
       </header>
 
       <div className="flex flex-col gap-4 p-4">
+        <Field id={fieldId('name')} label="Name">
+          <Input
+            id={fieldId('name')}
+            value={nameDraft}
+            onChange={(event) => editName(event.target.value)}
+            onBlur={blurName}
+            placeholder={namePlaceholder(info.bpmnType)}
+            autoComplete="off"
+            {...lock}
+          />
+        </Field>
         {text('owner', 'Owner', info.laneName ? `Lane: ${info.laneName}` : undefined)}
         {text('system', 'System')}
         {text('input', 'Input')}
