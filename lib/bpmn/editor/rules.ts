@@ -4,16 +4,9 @@ import { deletableElements } from './delete-policy.ts'
 import { isResizableKind } from './element-kinds.ts'
 import { lanePoolItems, laneContents, type BoxEl } from './lane-items.ts'
 import { layoutAfterLaneResize, layoutAfterPoolResize, layoutIsValid, type Rect } from './lane-layout.ts'
-import { canDrop, connectionTypeBetween, hasLanes, isConnection, kindOf, type El } from './model-rules.ts'
+import { belowMinimumSize, canDrop, connectionTypeBetween, hasLanes, isConnection, kindOf, type El } from './model-rules.ts'
 
 export { connectionTypeBetween, poolOf } from './model-rules.ts'
-
-const MIN_SIZE: Record<string, { width: number; height: number }> = {
-  task: { width: 60, height: 40 },
-  participant: { width: 300, height: 60 },
-  lane: { width: 120, height: 60 },
-  unknown: { width: 60, height: 40 },
-}
 
 interface ShapeEl extends El, Rect {}
 
@@ -55,10 +48,9 @@ export default class TraceRules extends RuleProvider {
     this.addRule('shape.resize', (context: { shape: ShapeEl; newBounds?: Rect }) => {
       const kind = kindOf(context.shape)
       if (!isResizableKind(kind)) return false
+      if (context.newBounds && belowMinimumSize(kind, context.newBounds)) return false
       if (kind === 'participant' && !context.shape.businessObject?.processRef) return true // collapsed pool
       if (!context.newBounds) return true
-      const min = MIN_SIZE[kind]
-      if (context.newBounds.width < min.width || context.newBounds.height < min.height) return false
       if (kind === 'lane' || (kind === 'participant' && hasLanes(context.shape))) {
         return laneResizeAllowed(context.shape, context.newBounds)
       }

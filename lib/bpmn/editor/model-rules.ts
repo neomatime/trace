@@ -20,6 +20,19 @@ export interface El {
   target?: El
 }
 
+const MIN_SIZE: Record<string, { width: number; height: number }> = {
+  task: { width: 60, height: 40 },
+  participant: { width: 300, height: 60 },
+  lane: { width: 120, height: 60 },
+  unknown: { width: 60, height: 40 },
+}
+
+/** Whether `bounds` is smaller than the minimum size for the element kind. */
+export function belowMinimumSize(kind: string, bounds: { width: number; height: number }): boolean {
+  const min = MIN_SIZE[kind]
+  return !!min && (bounds.width < min.width || bounds.height < min.height)
+}
+
 export const kindOf = (el: El | undefined) => shapeKindOf(el?.type ?? '')
 export const isConnection = (el: El) => Array.isArray(el.waypoints)
 export const isRoot = (el: El | undefined) => !!el && !el.parent && !isConnection(el)

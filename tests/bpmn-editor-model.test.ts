@@ -209,3 +209,12 @@ test('a new canvas element gets semantic placement and DI', async () => {
   assert.deepEqual(plan.warnings, [])
   assert.equal(plan.shapes.find((s) => s.id === 'ServiceTask_New')?.parentId, 'Lane_Finance')
 })
+
+test('belowMinimumSize applies the participant minimum (also used for collapsed pools)', async () => {
+  const { belowMinimumSize } = await import('../lib/bpmn/editor/model-rules.ts')
+  assert.equal(belowMinimumSize('participant', { width: 299, height: 100 }), true)
+  assert.equal(belowMinimumSize('participant', { width: 400, height: 59 }), true)
+  assert.equal(belowMinimumSize('participant', { width: 300, height: 60 }), false)
+  assert.equal(belowMinimumSize('lane', { width: 119, height: 80 }), true)
+  assert.equal(belowMinimumSize('task', { width: 60, height: 40 }), false)
+})
