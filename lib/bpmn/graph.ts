@@ -1,4 +1,4 @@
-import type { ModdleElement } from 'bpmn-moddle'
+import type { BpmnModdle, ModdleElement } from 'bpmn-moddle'
 import { createModdle } from './trace-moddle.ts'
 import type { EntityId } from '../../types/common.ts'
 import type {
@@ -17,7 +17,7 @@ function messageOf(error: unknown): string {
   return message.trim().length > 0 ? message : 'Unable to read the BPMN XML'
 }
 
-function readAuditFields(element: ModdleElement): AuditFields {
+export function readAuditFields(element: ModdleElement): AuditFields {
   const holder = (element.extensionElements?.values ?? []).find(
     (value: ModdleElement) => value.$type === AUDIT_TYPE,
   )
@@ -158,7 +158,16 @@ export async function setAuditFieldsInXml(
   const { rootElement, elementsById } = await moddle.fromXML(xml)
   const target = elementsById[elementId]
   if (!target) throw new Error(`Element "${elementId}" was not found in the BPMN XML`)
+  applyAuditFields(moddle, target, fields)
+  const result = await moddle.toXML(rootElement, { format: true })
+  return result.xml
+}
 
+/**
+ * Replaces the `trace:AuditFields` extension of a moddle element in place,
+ * keeping any other extension values. Removes the extension when empty.
+ */
+export function applyAuditFields(moddle: BpmnModdle, target: ModdleElement, fields: AuditFields): void {
   const others = ((target.extensionElements?.values ?? []) as ModdleElement[]).filter(
     (value) => value.$type !== AUDIT_TYPE,
   )
@@ -192,6 +201,4 @@ export async function setAuditFieldsInXml(
     extension.values = values
     target.extensionElements = extension
   }
-  const result = await moddle.toXML(rootElement, { format: true })
-  return result.xml
 }

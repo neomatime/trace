@@ -1,0 +1,189 @@
+/*
+ * TRACE BPMN editor theme. Everything resolves to TRACE tokens from
+ * styles/globals.css (light and, when defined, dark), so the canvas follows
+ * the app theme. Scoped to .trace-bpmn-editor.
+ */
+
+/* diagram-js chrome: canvas, selection, lasso, bendpoints */
+.trace-bpmn-editor .djs-parent,
+.trace-bpmn-editor.djs-parent {
+  --canvas-fill-color: var(--background);
+  --accent-color: var(--ring);
+  --element-dragger-color: var(--ring);
+  --element-selected-outline-stroke-color: var(--ring);
+  --element-selected-outline-secondary-stroke-color: color-mix(in oklab, var(--ring) 45%, transparent);
+  --lasso-fill-color: color-mix(in oklab, var(--ring) 12%, transparent);
+  --lasso-stroke-color: var(--ring);
+  --bendpoint-fill-color: var(--ring);
+  --bendpoint-stroke-color: var(--background);
+  --shape-drop-allowed-fill-color: color-mix(in oklab, var(--success) 10%, transparent);
+  --shape-drop-not-allowed-fill-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+  --shape-connect-allowed-fill-color: color-mix(in oklab, var(--success) 10%, transparent);
+  --shape-attach-allowed-stroke-color: var(--ring);
+  --shape-resize-preview-stroke-color: var(--ring);
+}
+
+.trace-bpmn-editor .djs-container svg:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* shapes */
+.trace-bpmn-editor .tb-body {
+  stroke: var(--foreground);
+  stroke-width: 1.5px;
+  fill: var(--card);
+}
+
+.trace-bpmn-editor .tb-start-event {
+  stroke-width: 1.5px;
+}
+
+.trace-bpmn-editor .tb-end-event {
+  stroke-width: 4px;
+}
+
+.trace-bpmn-editor .tb-gateway-x {
+  stroke: var(--foreground);
+  stroke-width: 3.5px;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.trace-bpmn-editor .tb-icon {
+  stroke: var(--foreground);
+  stroke-width: 1.1px;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.trace-bpmn-editor .tb-unknown {
+  stroke-dasharray: 4 3;
+}
+
+/* pools and lanes */
+.trace-bpmn-editor .tb-pool {
+  fill: var(--card);
+}
+
+.trace-bpmn-editor .tb-lane {
+  fill: transparent;
+  stroke-width: 1px;
+}
+
+.trace-bpmn-editor .tb-frame-header {
+  fill: var(--muted);
+  stroke: none;
+}
+
+.trace-bpmn-editor .tb-lane-header {
+  fill: transparent;
+}
+
+.trace-bpmn-editor .tb-frame-divider {
+  stroke: var(--foreground);
+  stroke-width: 1px;
+}
+
+/* labels */
+.trace-bpmn-editor .tb-label {
+  fill: var(--foreground);
+  font-size: 12px;
+}
+
+.trace-bpmn-editor .tb-frame-label {
+  font-weight: 600;
+}
+
+.trace-bpmn-editor .tb-gateway-label {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.trace-bpmn-editor .tb-flow-label {
+  fill: var(--muted-foreground);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+}
+
+/* connections */
+.trace-bpmn-editor .tb-flow {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.trace-bpmn-editor .tb-message-flow {
+  stroke-dasharray: 7 5;
+}
+
+.trace-bpmn-editor .tb-sequence-flow-arrow {
+  fill: var(--foreground);
+  stroke: var(--foreground);
+  stroke-width: 1px;
+}
+
+.trace-bpmn-editor .tb-message-flow-arrow,
+.trace-bpmn-editor .tb-message-flow-source {
+  fill: var(--card);
+  stroke: var(--foreground);
+  stroke-width: 1.5px;
+}
+
+/* compare states: green added, amber changed, red ghost removed */
+.trace-bpmn-editor .trace-compare-added .djs-visual .tb-body {
+  stroke: var(--success);
+  stroke-width: 3px;
+}
+
+.trace-bpmn-editor .trace-compare-changed .djs-visual .tb-body {
+  stroke: var(--warning);
+  stroke-width: 3px;
+}
+
+.trace-bpmn-editor .trace-compare-removed .djs-visual {
+  opacity: 0.45;
+}
+
+.trace-bpmn-editor .trace-compare-removed .djs-visual .tb-body {
+  stroke: var(--destructive);
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+}
+
+.trace-bpmn-editor .trace-compare-added .djs-visual .tb-arrow {
+  fill: var(--success);
+  stroke: var(--success);
+}
+
+.trace-bpmn-editor .trace-compare-changed .djs-visual .tb-arrow {
+  fill: var(--warning);
+  stroke: var(--warning);
+}
+
+.trace-bpmn-editor .trace-compare-removed .djs-visual .tb-arrow {
+  stroke: var(--destructive);
+}
+
+/* issue badges (overlays) */
+.trace-bpmn-editor .trace-issue-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+  box-shadow: 0 0 0 2px var(--background);
+}
+
+.trace-bpmn-editor .trace-issue-error {
+  background: var(--destructive);
+  color: var(--primary-foreground);
+}
+
+.trace-bpmn-editor .trace-issue-warning {
+  background: var(--warning);
+  color: var(--warning-foreground);
+}
