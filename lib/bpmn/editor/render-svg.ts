@@ -74,6 +74,30 @@ export function drawTaskIcon(parent: SVGElement, icon: 'user' | 'manual' | 'serv
 
 export type Pt = { x: number; y: number }
 
+/**
+ * Where a flow's name is drawn: near the source end of a sequence flow, at the
+ * middle of a message flow. `vertical` is true when the segment is mostly
+ * vertical (the name then sits right of the line instead of above it).
+ */
+export function flowLabelAnchor(points: readonly Pt[], isMessage: boolean): { anchor: Pt; vertical: boolean } {
+  let anchor: Pt
+  let dir: Pt
+  if (isMessage) {
+    const mid = Math.floor((points.length - 1) / 2)
+    const a = points[mid]
+    const b = points[mid + 1]
+    anchor = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+    dir = { x: b.x - a.x, y: b.y - a.y }
+  } else {
+    const [a, b] = points
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1
+    const step = Math.min(16, len / 2)
+    anchor = { x: a.x + ((b.x - a.x) / len) * step, y: a.y + ((b.y - a.y) / len) * step }
+    dir = { x: b.x - a.x, y: b.y - a.y }
+  }
+  return { anchor, vertical: Math.abs(dir.y) > Math.abs(dir.x) }
+}
+
 /** Triangle arrowhead whose tip sits on `tip`, pointing away from `from`. */
 export function arrowHeadPoints(from: Pt, tip: Pt, length = 10, halfWidth = 4): string {
   const dx = tip.x - from.x

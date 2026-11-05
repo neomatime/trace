@@ -105,6 +105,36 @@
   font-size: 11px;
 }
 
+/* inline name editor (lib/bpmn/editor/label-editing.ts): sits over the label, tokens only */
+.trace-bpmn-editor .trace-label-editor {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 2px 4px;
+  resize: none;
+  overflow: hidden;
+  border: 1.5px solid var(--ring);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.2;
+  box-shadow: 0 2px 8px color-mix(in oklab, var(--foreground) 18%, transparent);
+  outline: none;
+}
+
+.trace-bpmn-editor .trace-label-editor::selection {
+  background: color-mix(in oklab, var(--ring) 35%, transparent);
+}
+
+/* pool and lane names run bottom-to-top along the header band */
+.trace-bpmn-editor .trace-label-editor-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 4px 2px;
+}
+
 /* connections */
 .trace-bpmn-editor .tb-flow {
   fill: none;

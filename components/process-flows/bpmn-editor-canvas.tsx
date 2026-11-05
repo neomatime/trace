@@ -230,6 +230,8 @@ export default function BpmnEditorCanvas({
         getAuditFields: (id) => live().getAuditFields(id),
         setAuditFields: (id, fields) => live().setAuditFields(id, fields),
         getElementInfo: (id) => instance.current?.getElementInfo(id) ?? null,
+        renameElement: (id, name) => instance.current?.renameElement(id, name) ?? false,
+        startLabelEdit: (id) => instance.current?.startLabelEdit(id) ?? false,
         setCompareStates: (states) => instance.current?.setCompareStates(states),
         setIssues: (list) => instance.current?.setIssues(list),
         fit: () => instance.current?.fit(),

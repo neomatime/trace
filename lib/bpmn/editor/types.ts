@@ -44,6 +44,22 @@ export interface ProcessEditor {
    * name of the nearest enclosing lane. Null if it is not on the canvas.
    */
   getElementInfo(elementId: EntityId): ElementInfo | null
+
+  // Task 12b additions (naming). Both are no-ops returning false in read-only mode.
+
+  /**
+   * Name an element (task, event, decision, flow, pool or lane). The name is
+   * normalised (`normalizeElementName`; an empty name clears it) and the change
+   * is ONE undoable step. False if the element does not exist, is not a
+   * nameable Stage 1 kind, or the editor is read-only.
+   */
+  renameElement(elementId: EntityId, name: string): boolean
+  /**
+   * Open the inline text editor over the element's label (Enter or blur
+   * commits, Escape cancels). False if the element does not exist or the
+   * editor is read-only.
+   */
+  startLabelEdit(elementId: EntityId): boolean
 }
 
 export interface ElementInfo {

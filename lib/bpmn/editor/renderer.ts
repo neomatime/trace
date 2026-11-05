@@ -3,7 +3,7 @@ import type EventBus from 'diagram-js/lib/core/EventBus.js'
 import type { Connection, Element, Shape } from 'diagram-js/lib/model/Types.js'
 import Text from 'diagram-js/lib/util/Text.js'
 import { connectionKindOf, shapeKindOf, taskIconOf } from './element-kinds.ts'
-import { arrowHeadPoints, drawTaskIcon, group, svg, type Pt } from './render-svg.ts'
+import { arrowHeadPoints, drawTaskIcon, flowLabelAnchor, group, svg, type Pt } from './render-svg.ts'
 
 /**
  * SVG notation for the Stage 1 BPMN element set, drawn from scratch:
@@ -16,7 +16,9 @@ import { arrowHeadPoints, drawTaskIcon, group, svg, type Pt } from './render-svg
  * CSS; colours come from theme tokens in bpmn-editor.css.
  */
 
-const HEADER = 30
+/** Width of the vertical name band of pools and lanes (the inline editor sits over it). */
+export const FRAME_HEADER = 30
+const HEADER = FRAME_HEADER
 const TASK_RADIUS = 10
 const LABEL_STYLE = { fontFamily: 'ui-sans-serif, system-ui, sans-serif', fontSize: 12, lineHeight: 1.2 }
 
@@ -195,22 +197,7 @@ export default class TraceRenderer extends BaseRenderer {
   }
 
   private drawFlowLabel(parent: SVGElement, points: readonly Pt[], name: string, isMessage: boolean): void {
-    let anchor: Pt
-    let dir: Pt
-    if (isMessage) {
-      const mid = Math.floor((points.length - 1) / 2)
-      const a = points[mid]
-      const b = points[mid + 1]
-      anchor = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
-      dir = { x: b.x - a.x, y: b.y - a.y }
-    } else {
-      const [a, b] = points
-      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1
-      const step = Math.min(16, len / 2)
-      anchor = { x: a.x + ((b.x - a.x) / len) * step, y: a.y + ((b.y - a.y) / len) * step }
-      dir = { x: b.x - a.x, y: b.y - a.y }
-    }
-    const vertical = Math.abs(dir.y) > Math.abs(dir.x)
+    const { anchor, vertical } = flowLabelAnchor(points, isMessage)
     svg(
       parent,
       'text',

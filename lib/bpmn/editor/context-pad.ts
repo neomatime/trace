@@ -14,6 +14,7 @@ import { resolveDeletable } from './delete-policy.ts'
 import { isFlowNodeKind, shapeKindOf } from './element-kinds.ts'
 import { iconSvg, type PadIcon } from './icons.ts'
 import { findAppendPosition, type Rect } from './placement.ts'
+import type TraceLabelEditing from './label-editing.ts'
 import type TraceLaneBehaviour from './lane-behaviour.ts'
 import { poolOf } from './rules.ts'
 import type { EditorModule } from './types.ts'
@@ -67,6 +68,7 @@ export class TraceContextPadProvider {
     'selection',
     'rules',
     'traceLaneBehaviour',
+    'traceLabelEditing',
   ]
 
   private readonly modeling: Modeling
@@ -78,6 +80,7 @@ export class TraceContextPadProvider {
   private readonly selection: Selection
   private readonly rules: Rules
   private readonly lanes: TraceLaneBehaviour
+  private readonly labels: TraceLabelEditing
 
   constructor(
     contextPad: ContextPad,
@@ -90,6 +93,7 @@ export class TraceContextPadProvider {
     selection: Selection,
     rules: Rules,
     lanes: TraceLaneBehaviour,
+    labels: TraceLabelEditing,
   ) {
     this.modeling = modeling
     this.elementFactory = elementFactory
@@ -100,6 +104,7 @@ export class TraceContextPadProvider {
     this.selection = selection
     this.rules = rules
     this.lanes = lanes
+    this.labels = labels
     contextPad.registerProvider(this)
   }
 
@@ -153,6 +158,7 @@ export class TraceContextPadProvider {
           const lane = this.lanes.addLane(target, where)
           if (lane) this.selection.select(lane)
           this.canvas.focus()
+          if (lane) this.labels.start(lane) // name it straight away
         },
       },
     }
@@ -182,6 +188,7 @@ export class TraceContextPadProvider {
     this.selection.select(created)
     this.canvas.scrollToElement(created as never)
     this.canvas.focus() // keyboard shortcuts keep working after a pad click
+    this.labels.start(created) // name it straight away; Escape keeps it unnamed
     return created
   }
 

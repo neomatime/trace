@@ -40,6 +40,7 @@ import TraceElementFactory from './element-factory.ts'
 import { findElementByName } from './element-search.ts'
 import { isFlowNodeKind, shapeKindOf } from './element-kinds.ts'
 import TraceKeyboardBindings from './keyboard.ts'
+import TraceLabelEditing from './label-editing.ts'
 import TraceLaneBehaviour, { poolForLane } from './lane-behaviour.ts'
 import TraceLayouter from './layouter.ts'
 import { CanvasMarkers } from './markers.ts'
@@ -104,10 +105,11 @@ export const MODELER_MODULES: readonly EditorModule[] = [
   KeyboardMoveSelectionModule,
   AutoResizeModule,
   {
-    // Ctrl/Cmd+0 fits; pools and lanes grow to fit new steps (Task 12: lanes too).
-    __init__: ['traceKeyboardBindings', 'traceAutoResizeProvider'],
+    // Ctrl/Cmd+0 fits; pools and lanes grow to fit new steps (Task 12: lanes too); F2 and double-click rename.
+    __init__: ['traceKeyboardBindings', 'traceAutoResizeProvider', 'traceLabelEditing'],
     traceKeyboardBindings: ['type', TraceKeyboardBindings],
     traceAutoResizeProvider: ['type', TraceAutoResizeProvider],
+    traceLabelEditing: ['type', TraceLabelEditing],
   },
 ]
 
@@ -187,6 +189,7 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
   const create = options.readOnly ? null : get<Create>('create')
   const rules = options.readOnly ? null : get<Rules>('rules')
   const lanes = options.readOnly ? null : get<TraceLaneBehaviour>('traceLaneBehaviour')
+  const labels = options.readOnly ? null : get<TraceLabelEditing>('traceLabelEditing')
   let destroyed = false
 
   const elementOrThrow = (id: EntityId): Element => {
@@ -291,6 +294,16 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
       commandStack.execute(UPDATE_AUDIT_FIELDS, { element: elementOrThrow(elementId), fields })
     },
 
+    renameElement(elementId, name) {
+      if (!labels) return false
+      return labels.rename(registry.get(elementId) as Element, name)
+    },
+
+    startLabelEdit(elementId) {
+      if (!labels) return false
+      return labels.start(registry.get(elementId) as Element | undefined)
+    },
+
     getElementInfo(elementId) {
       const element = registry.get(elementId) as Element | undefined
       if (!element || isRoot(element) || !element.businessObject) return null
@@ -376,6 +389,7 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
         selection.select(created)
         canvas.scrollToElement(created as never)
         canvas.focus()
+        labels?.start(created) // name it straight away
         return created.id
       }
       const shape = factory.createShape({ type: bpmnType } as never) as Shape
@@ -414,6 +428,7 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
       const created = modeling.createShape(shape, position, target as Shape)
       selection.select(created)
       canvas.focus() // so Delete and Ctrl/Cmd+Z apply straight away
+      labels?.start(created) // name it straight away; Escape keeps it unnamed
       return created.id
     },
   }
