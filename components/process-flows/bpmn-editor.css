@@ -1,0 +1,320 @@
+/*
+ * TRACE BPMN editor theme. Everything resolves to TRACE tokens from
+ * styles/globals.css (light and, when defined, dark), so the canvas follows
+ * the app theme. Scoped to .trace-bpmn-editor.
+ */
+
+/* diagram-js chrome: canvas, selection, lasso, bendpoints */
+.trace-bpmn-editor .djs-parent,
+.trace-bpmn-editor.djs-parent {
+  --canvas-fill-color: var(--background);
+  --accent-color: var(--ring);
+  --element-dragger-color: var(--ring);
+  --element-selected-outline-stroke-color: var(--ring);
+  --element-selected-outline-secondary-stroke-color: color-mix(in oklab, var(--ring) 45%, transparent);
+  --lasso-fill-color: color-mix(in oklab, var(--ring) 12%, transparent);
+  --lasso-stroke-color: var(--ring);
+  --bendpoint-fill-color: var(--ring);
+  --bendpoint-stroke-color: var(--background);
+  --shape-drop-allowed-fill-color: color-mix(in oklab, var(--success) 10%, transparent);
+  --shape-drop-not-allowed-fill-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+  --shape-connect-allowed-fill-color: color-mix(in oklab, var(--success) 10%, transparent);
+  --shape-attach-allowed-stroke-color: var(--ring);
+  --shape-resize-preview-stroke-color: var(--ring);
+}
+
+.trace-bpmn-editor .djs-container svg:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* shapes */
+.trace-bpmn-editor .tb-body {
+  stroke: var(--foreground);
+  stroke-width: 1.5px;
+  fill: var(--card);
+}
+
+.trace-bpmn-editor .tb-start-event {
+  stroke-width: 1.5px;
+}
+
+.trace-bpmn-editor .tb-end-event {
+  stroke-width: 4px;
+}
+
+.trace-bpmn-editor .tb-gateway-x {
+  stroke: var(--foreground);
+  stroke-width: 3.5px;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.trace-bpmn-editor .tb-icon {
+  stroke: var(--foreground);
+  stroke-width: 1.1px;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.trace-bpmn-editor .tb-unknown {
+  stroke-dasharray: 4 3;
+}
+
+/* pools and lanes */
+.trace-bpmn-editor .tb-pool {
+  fill: var(--card);
+}
+
+.trace-bpmn-editor .tb-lane {
+  fill: transparent;
+  stroke-width: 1px;
+}
+
+.trace-bpmn-editor .tb-frame-header {
+  fill: var(--muted);
+  stroke: none;
+}
+
+.trace-bpmn-editor .tb-lane-header {
+  fill: transparent;
+}
+
+.trace-bpmn-editor .tb-frame-divider {
+  stroke: var(--foreground);
+  stroke-width: 1px;
+}
+
+/* labels */
+.trace-bpmn-editor .tb-label {
+  fill: var(--foreground);
+  font-size: 12px;
+}
+
+.trace-bpmn-editor .tb-frame-label {
+  font-weight: 600;
+}
+
+.trace-bpmn-editor .tb-gateway-label {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.trace-bpmn-editor .tb-flow-label {
+  fill: var(--muted-foreground);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+}
+
+/* inline name editor (lib/bpmn/editor/label-editing.ts): sits over the label, tokens only */
+.trace-bpmn-editor .trace-label-editor {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 2px 4px;
+  resize: none;
+  overflow: hidden;
+  border: 1.5px solid var(--ring);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.2;
+  box-shadow: 0 2px 8px color-mix(in oklab, var(--foreground) 18%, transparent);
+  outline: none;
+}
+
+.trace-bpmn-editor .trace-label-editor::selection {
+  background: color-mix(in oklab, var(--ring) 35%, transparent);
+}
+
+/* pool and lane names run bottom-to-top along the header band */
+.trace-bpmn-editor .trace-label-editor-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 4px 2px;
+}
+
+/* connections */
+.trace-bpmn-editor .tb-flow {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.trace-bpmn-editor .tb-message-flow {
+  stroke-dasharray: 7 5;
+}
+
+.trace-bpmn-editor .tb-sequence-flow-arrow {
+  fill: var(--foreground);
+  stroke: var(--foreground);
+  stroke-width: 1px;
+}
+
+.trace-bpmn-editor .tb-message-flow-arrow,
+.trace-bpmn-editor .tb-message-flow-source {
+  fill: var(--card);
+  stroke: var(--foreground);
+  stroke-width: 1.5px;
+}
+
+/* compare states: green added, amber changed, red ghost removed */
+.trace-bpmn-editor .trace-compare-added .djs-visual .tb-body {
+  stroke: var(--success);
+  stroke-width: 3px;
+}
+
+.trace-bpmn-editor .trace-compare-changed .djs-visual .tb-body {
+  stroke: var(--warning);
+  stroke-width: 3px;
+}
+
+.trace-bpmn-editor .trace-compare-removed .djs-visual {
+  opacity: 0.45;
+}
+
+.trace-bpmn-editor .trace-compare-removed .djs-visual .tb-body {
+  stroke: var(--destructive);
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+}
+
+.trace-bpmn-editor .trace-compare-added .djs-visual .tb-arrow {
+  fill: var(--success);
+  stroke: var(--success);
+}
+
+.trace-bpmn-editor .trace-compare-changed .djs-visual .tb-arrow {
+  fill: var(--warning);
+  stroke: var(--warning);
+}
+
+.trace-bpmn-editor .trace-compare-removed .djs-visual .tb-arrow {
+  stroke: var(--destructive);
+}
+
+/* issue badges (overlays) */
+.trace-bpmn-editor .trace-issue-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+  box-shadow: 0 0 0 2px var(--background);
+}
+
+.trace-bpmn-editor .trace-issue-error {
+  background: var(--destructive);
+  color: var(--primary-foreground);
+}
+
+.trace-bpmn-editor .trace-issue-warning {
+  background: var(--warning);
+  color: var(--warning-foreground);
+}
+
+/* palette entry icons (React palette, see editor-palette.tsx) */
+.trace-bpmn-editor .trace-palette-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.trace-bpmn-editor .trace-palette-entry:hover .trace-palette-icon,
+.trace-bpmn-editor .trace-palette-entry:focus-visible .trace-palette-icon {
+  border-color: var(--ring);
+  color: var(--ring);
+}
+
+/* context pad: a vertical column of quick-add buttons with hover labels */
+.trace-bpmn-editor .djs-context-pad {
+  width: auto;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.trace-bpmn-editor .djs-context-pad.open {
+  display: flex;
+}
+
+.trace-bpmn-editor .djs-context-pad .group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trace-bpmn-editor .djs-context-pad .group + .group {
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.trace-bpmn-editor .djs-context-pad .entry.trace-pad-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  font-size: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 14%, transparent);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.trace-bpmn-editor .djs-context-pad .entry.trace-pad-entry:hover,
+.trace-bpmn-editor .djs-context-pad .entry.trace-pad-entry:focus-visible {
+  border-color: var(--ring);
+  color: var(--ring);
+  background: var(--card);
+  outline: none;
+  transform: translateX(1px);
+}
+
+.trace-bpmn-editor .djs-context-pad .entry.trace-pad-delete:hover,
+.trace-bpmn-editor .djs-context-pad .entry.trace-pad-delete:focus-visible {
+  border-color: var(--destructive);
+  color: var(--destructive);
+}
+
+.trace-bpmn-editor .trace-pad-label {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.trace-bpmn-editor .trace-pad-entry:hover .trace-pad-label,
+.trace-bpmn-editor .trace-pad-entry:focus-visible .trace-pad-label {
+  opacity: 1;
+}

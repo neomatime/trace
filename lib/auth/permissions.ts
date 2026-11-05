@@ -1,4 +1,4 @@
-import { ROLE_PERMISSIONS, type Permission } from '@/config/roles'
+import { ROLE_PERMISSIONS, type Permission } from '../../config/roles.ts'
 import type { UserRole } from '@/types/user'
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {

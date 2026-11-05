@@ -68,8 +68,9 @@ export function CrudActionMenu({ actions, label = 'Record actions' }: { actions:
   </div>
 }
 
-export function ConfirmActionDialog({ open, onClose, onConfirm, title, description, confirmLabel, destructive = false, busy = false }: { open: boolean; onClose: () => void; onConfirm: () => void; title: string; description: string; confirmLabel: string; destructive?: boolean; busy?: boolean }) {
+export function ConfirmActionDialog({ open, onClose, onConfirm, title, description, confirmLabel, destructive = false, busy = false, children }: { open: boolean; onClose: () => void; onConfirm: () => void; title: string; description: string; confirmLabel: string; destructive?: boolean; busy?: boolean; /** Optional extra content above the buttons, e.g. a note field. */ children?: React.ReactNode }) {
   return <Dialog open={open} onClose={onClose} title={title} description={description}>
+    {children && <div className="mb-5">{children}</div>}
     <div className="flex justify-end gap-2">
       <button type="button" onClick={onClose} disabled={busy} className="h-9 rounded-md border border-border px-4 text-xs font-semibold hover:bg-muted disabled:opacity-50">Cancel</button>
       <button type="button" onClick={onConfirm} disabled={busy} className={cn('h-9 rounded-md px-4 text-xs font-semibold text-white disabled:opacity-50', destructive ? 'bg-destructive' : 'bg-primary')}>{busy ? 'Working…' : confirmLabel}</button>
