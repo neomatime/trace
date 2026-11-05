@@ -25,6 +25,7 @@ import type { Context, Readiness, Transition, WorkspaceState } from '@/modules/p
 import {
   EMPTY_SUGGESTION_STORE,
   applyDecision,
+  guardSuggestionAction,
   markRecommendationCreated,
 } from '@/modules/process-flows/suggestion-state'
 import type { SuggestionDecision, SuggestionEdits, SuggestionStore } from '@/modules/process-flows/suggestion-state'
@@ -51,7 +52,7 @@ export interface ProcessFlowActions {
   /** Record a human decision on a suggestion (never called automatically). */
   decideSuggestion(id: EntityId, decision: SuggestionDecision, edits?: SuggestionEdits): ActionResult
   /** Remember that a recommendation was drafted from a suggestion. */
-  markRecommendationCreated(id: EntityId): void
+  markRecommendationCreated(id: EntityId): ActionResult
 }
 
 export interface UseProcessFlow {
@@ -84,6 +85,7 @@ export function useProcessFlow(auditId: EntityId, user: ProcessFlowUser = curren
   const [suggestionStore, setSuggestionStore] = useState<SuggestionStore>(EMPTY_SUGGESTION_STORE)
   /** The latest state, so actions fired back-to-back (flush, then submit) see each other's writes. */
   const latest = useRef(state)
+  const suggestionLatest = useRef(EMPTY_SUGGESTION_STORE)
   const sequence = useRef(0)
 
   const context = useCallback(
@@ -126,17 +128,27 @@ export function useProcessFlow(auditId: EntityId, user: ProcessFlowUser = curren
         apply(startProcessMapState(latest.current, { auditId, name, xml }, context())),
       clearError: () => setError(null),
       decideSuggestion: (id, decision, edits) => {
+        const allowed = guardSuggestionAction(user.role, 'decide')
+        if (!allowed.ok) return allowed
         try {
-          const at = new Date().toISOString()
-          setSuggestionStore((store) => applyDecision(store, id, decision, user.id, at, edits))
+          const next = applyDecision(suggestionLatest.current, id, decision, user.id, new Date().toISOString(), edits)
+          suggestionLatest.current = next
+          setSuggestionStore(next)
           return { ok: true }
         } catch (reason) {
           return { ok: false, error: reason instanceof Error ? reason.message : String(reason) }
         }
       },
-      markRecommendationCreated: (id) => setSuggestionStore((store) => markRecommendationCreated(store, id)),
+      markRecommendationCreated: (id) => {
+        const allowed = guardSuggestionAction(user.role, 'create')
+        if (!allowed.ok) return allowed
+        const next = markRecommendationCreated(suggestionLatest.current, id)
+        suggestionLatest.current = next
+        setSuggestionStore(next)
+        return { ok: true }
+      },
     }),
-    [apply, auditId, context, user.id],
+    [apply, auditId, context, user.id, user.role],
   )
 
   const ready = useMemo(() => readiness(state), [state])

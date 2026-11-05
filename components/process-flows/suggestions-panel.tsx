@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Lightbulb } from 'lucide-react'
+import { AlertTriangle, Lightbulb, X } from 'lucide-react'
 import { CrudFormDialog } from '@/components/ui/crud'
 import type { CrudField } from '@/components/ui/crud'
 import type { ActionResult } from '@/hooks/use-process-flow'
@@ -37,7 +37,7 @@ export interface SuggestionsPanelProps {
   canCreateToBe: boolean
   onCreateToBe(): void
   onDecide(id: EntityId, decision: SuggestionDecision, edits?: SuggestionEdits): ActionResult
-  onRecommendationCreated(id: EntityId): void
+  onRecommendationCreated(id: EntityId): ActionResult
   onToast(message: string): void
 }
 
@@ -94,6 +94,7 @@ function SuggestionsBody({
   const [parsed, setParsed] = useState<ParsedPair | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<EntityId | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // First parse is immediate; later ones wait for the To-Be XML to settle.
   const hasParsed = parsed !== null
@@ -164,14 +165,22 @@ function SuggestionsBody({
   const rejected = items.filter((i) => i.status === 'Rejected')
   const editing = editingId ? items.find((i) => i.id === editingId) : undefined
 
+  const decide = (id: EntityId, decision: SuggestionDecision, edits?: SuggestionEdits) => {
+    const result = onDecide(id, decision, edits)
+    setActionError(result.ok ? null : result.error)
+    return result
+  }
+
   const createRecommendation = (item: ProcessSuggestion) => {
     try {
       toRecommendationDraft(item)
     } catch (reason) {
-      onToast(messageOf(reason))
+      setActionError(messageOf(reason))
       return
     }
-    onRecommendationCreated(item.id)
+    const result = onRecommendationCreated(item.id)
+    if (!result.ok) return setActionError(result.error)
+    setActionError(null)
     onToast(`Recommendation drafted from ${item.title} (demo)`)
   }
 
@@ -184,9 +193,9 @@ function SuggestionsBody({
       canDecide={canDecide}
       canCreateRecommendation={canCreate}
       drafted={store.created.includes(item.id)}
-      onAccept={() => onDecide(item.id, 'Accepted')}
+      onAccept={() => decide(item.id, 'Accepted')}
       onEdit={() => setEditingId(item.id)}
-      onReject={() => onDecide(item.id, 'Rejected')}
+      onReject={() => decide(item.id, 'Rejected')}
       onCreateRecommendation={() => createRecommendation(item)}
     />
   )
@@ -210,6 +219,19 @@ function SuggestionsBody({
         >
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>{error} Showing the last suggestions that worked.</span>
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span className="flex-1">{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} aria-label="Dismiss message" className="rounded p-0.5 hover:bg-destructive/10">
+            <X className="size-3.5" aria-hidden />
+          </button>
         </div>
       ) : null}
 
@@ -266,7 +288,7 @@ function SuggestionsBody({
         submitLabel="Save edit"
         onSubmit={(values) => {
           if (!editing) return
-          onDecide(editing.id, 'Edited', {
+          decide(editing.id, 'Edited', {
             title: values.title.trim(),
             rationale: values.rationale.trim(),
             expectedOutcome: values.expectedOutcome.trim(),
