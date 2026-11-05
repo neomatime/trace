@@ -47,6 +47,10 @@ export default class TraceElementFactory extends ElementFactory {
       next.businessObject = moddle.create(next.type, {
         id,
         ...(next.name ? { name: next.name } : {}),
+        // A new pool is a process of its own (the semantic sync adds it to the definitions).
+        ...(next.type === 'bpmn:Participant'
+          ? { processRef: moddle.create('bpmn:Process', { id: this.document.nextId('bpmn:Process'), isExecutable: false }) }
+          : {}),
       })
       delete next.name
     }

@@ -40,6 +40,7 @@ import TraceElementFactory from './element-factory.ts'
 import { findElementByName } from './element-search.ts'
 import { isFlowNodeKind, shapeKindOf } from './element-kinds.ts'
 import TraceKeyboardBindings from './keyboard.ts'
+import TraceLaneBehaviour, { poolForLane } from './lane-behaviour.ts'
 import TraceLayouter from './layouter.ts'
 import { CanvasMarkers } from './markers.ts'
 import { findAppendPosition } from './placement.ts'
@@ -59,13 +60,14 @@ export const traceCoreModule: EditorModule = {
   traceRenderer: ['type', TraceRenderer],
 }
 
-/** TRACE editing: rules, layout, connection parenting and audit commands. */
+/** TRACE editing: rules, layout, connection parenting, pools and lanes, audit commands. */
 export const traceModelingModule: EditorModule = {
   __depends__: [ModelingModule],
-  __init__: ['traceRules', 'traceConnectionParentBehaviour', 'traceCommands'],
+  __init__: ['traceRules', 'traceConnectionParentBehaviour', 'traceCommands', 'traceLaneBehaviour'],
   traceRules: ['type', TraceRules],
   traceConnectionParentBehaviour: ['type', TraceConnectionParentBehaviour],
   traceCommands: ['type', TraceCommands],
+  traceLaneBehaviour: ['type', TraceLaneBehaviour],
   layouter: ['type', TraceLayouter],
   connectionDocking: ['type', CroppingConnectionDocking],
 }
@@ -102,7 +104,7 @@ export const MODELER_MODULES: readonly EditorModule[] = [
   KeyboardMoveSelectionModule,
   AutoResizeModule,
   {
-    // Task 10: Ctrl/Cmd+0 fits; pools without lanes grow to fit new steps.
+    // Ctrl/Cmd+0 fits; pools and lanes grow to fit new steps (Task 12: lanes too).
     __init__: ['traceKeyboardBindings', 'traceAutoResizeProvider'],
     traceKeyboardBindings: ['type', TraceKeyboardBindings],
     traceAutoResizeProvider: ['type', TraceAutoResizeProvider],
@@ -184,12 +186,28 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
   const modeling = options.readOnly ? null : get<Modeling>('modeling')
   const create = options.readOnly ? null : get<Create>('create')
   const rules = options.readOnly ? null : get<Rules>('rules')
+  const lanes = options.readOnly ? null : get<TraceLaneBehaviour>('traceLaneBehaviour')
   let destroyed = false
 
   const elementOrThrow = (id: EntityId): Element => {
     const element = registry.get(id) as Element | undefined
     if (!element || !element.businessObject) throw new Error(`Element "${id}" is not on the canvas`)
     return element
+  }
+
+  const viewCentre = () => {
+    const box = canvas.viewbox()
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  }
+  const addPool = () => lanes?.addPool(viewCentre()) ?? null
+  /** A lane next to the selected lane, else at the bottom of the selected (or only) pool; adds a pool first if none. */
+  const addLane = () => {
+    if (!lanes) return null
+    const selected = selection.get() as Element[]
+    const current = selected.length === 1 ? selected[0] : undefined
+    if (current && current.type === 'bpmn:Lane') return lanes.addLane(current as Shape, 'below')
+    const pool = poolForLane(current, registry.getAll() as Element[]) ?? addPool()
+    return pool ? lanes.addLane(pool, 'below') : null
   }
 
   const editor: ProcessEditor = {
@@ -340,11 +358,26 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
 
     startCreate(bpmnType, event) {
       if (!create) return
+      const rootType = (canvas.getRootElement() as Element).businessObject?.$type
+      // Lanes are placed by the lane layout, and a pool on a process-only
+      // diagram wraps it: both are added in one go rather than dragged.
+      if (bpmnType === 'bpmn:Lane' || (bpmnType === 'bpmn:Participant' && rootType !== 'bpmn:Collaboration')) {
+        editor.addElement(bpmnType)
+        return
+      }
       create.start(event, factory.createShape({ type: bpmnType } as never) as never)
     },
 
     addElement(bpmnType) {
-      if (!modeling || !rules) return null
+      if (!modeling || !rules || !lanes) return null
+      if (bpmnType === 'bpmn:Participant' || bpmnType === 'bpmn:Lane') {
+        const created = bpmnType === 'bpmn:Participant' ? addPool() : addLane()
+        if (!created) return null
+        selection.select(created)
+        canvas.scrollToElement(created as never)
+        canvas.focus()
+        return created.id
+      }
       const shape = factory.createShape({ type: bpmnType } as never) as Shape
       const allowedIn = (target: Element) => rules.allowed('shape.create', { shape, target }) === true
       const box = canvas.viewbox()

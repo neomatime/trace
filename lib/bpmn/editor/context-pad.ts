@@ -14,6 +14,7 @@ import { resolveDeletable } from './delete-policy.ts'
 import { isFlowNodeKind, shapeKindOf } from './element-kinds.ts'
 import { iconSvg, type PadIcon } from './icons.ts'
 import { findAppendPosition, type Rect } from './placement.ts'
+import type TraceLaneBehaviour from './lane-behaviour.ts'
 import { poolOf } from './rules.ts'
 import type { EditorModule } from './types.ts'
 
@@ -50,9 +51,23 @@ const APPEND_CHOICES: readonly AppendChoice[] = [
  * Quick-add on the selected element: "Add next step", "Add decision",
  * "Add end" (click to append to the right and connect in one go, or drag to
  * drop it anywhere, still connected), "Connect to..." and "Delete".
+ * A lane offers "Add lane above" / "Add lane below" and "Delete" (its steps
+ * stay, at pool level); a pool offers "Add lane", "Connect to..." (message
+ * flows) and "Delete".
  */
 export class TraceContextPadProvider {
-  static $inject = ['contextPad', 'modeling', 'elementFactory', 'create', 'connect', 'canvas', 'elementRegistry', 'selection', 'rules']
+  static $inject = [
+    'contextPad',
+    'modeling',
+    'elementFactory',
+    'create',
+    'connect',
+    'canvas',
+    'elementRegistry',
+    'selection',
+    'rules',
+    'traceLaneBehaviour',
+  ]
 
   private readonly modeling: Modeling
   private readonly elementFactory: ElementFactory
@@ -62,6 +77,7 @@ export class TraceContextPadProvider {
   private readonly registry: ElementRegistry
   private readonly selection: Selection
   private readonly rules: Rules
+  private readonly lanes: TraceLaneBehaviour
 
   constructor(
     contextPad: ContextPad,
@@ -73,6 +89,7 @@ export class TraceContextPadProvider {
     registry: ElementRegistry,
     selection: Selection,
     rules: Rules,
+    lanes: TraceLaneBehaviour,
   ) {
     this.modeling = modeling
     this.elementFactory = elementFactory
@@ -82,29 +99,63 @@ export class TraceContextPadProvider {
     this.registry = registry
     this.selection = selection
     this.rules = rules
+    this.lanes = lanes
     contextPad.registerProvider(this)
   }
 
   getContextPadEntries(element: Element): ContextPadEntries {
     if (isConnection(element)) return this.deleteEntries([element])
     const kind = kindOf(element)
-    if (!isFlowNodeKind(kind)) return {} // pools and lanes: editing arrives with Task 12
+    if (kind === 'lane') {
+      return {
+        'lane.above': this.laneEntry(element as Shape, 'above', 'lane-above', 'Add lane above'),
+        'lane.below': this.laneEntry(element as Shape, 'below', 'lane-below', 'Add lane below'),
+        ...this.deleteEntries([element]),
+      }
+    }
+    if (kind === 'participant') {
+      const entries: ContextPadEntries = {}
+      if (element.businessObject?.processRef) {
+        entries['lane.add'] = this.laneEntry(element as Shape, 'below', 'lane', 'Add lane')
+      }
+      return { ...entries, connect: this.connectEntry(element as Shape), ...this.deleteEntries([element]) }
+    }
+    if (!isFlowNodeKind(kind)) return this.deleteEntries([element])
 
     const entries: ContextPadEntries = {}
     if (kind !== 'end-event') {
       for (const choice of APPEND_CHOICES) entries[choice.key] = this.appendEntry(element as Shape, choice)
-      entries.connect = {
-        group: 'connect',
-        html: entryHtml('connect', 'Connect to…'),
-        title: 'Connect to… (click, then click the step to connect to)',
-        action: {
-          // diagram-js accepts (event, start, autoActivate); its typings only list the point overload
-          click: (event: Event) => this.connect.start(event as MouseEvent, element as Shape, true as never),
-          dragstart: (event: Event) => this.connect.start(event as MouseEvent, element as Shape),
-        },
-      }
+      entries.connect = this.connectEntry(element as Shape)
     }
     return { ...entries, ...this.deleteEntries([element]) }
+  }
+
+  private connectEntry(element: Shape): ContextPadEntry {
+    return {
+      group: 'connect',
+      html: entryHtml('connect', 'Connect to…'),
+      title: 'Connect to… (click, then click the step to connect to)',
+      action: {
+        // diagram-js accepts (event, start, autoActivate); its typings only list the point overload
+        click: (event: Event) => this.connect.start(event as MouseEvent, element, true as never),
+        dragstart: (event: Event) => this.connect.start(event as MouseEvent, element),
+      },
+    }
+  }
+
+  private laneEntry(target: Shape, where: 'above' | 'below', icon: PadIcon, label: string): ContextPadEntry {
+    return {
+      group: 'append',
+      html: entryHtml(icon, label),
+      title: label,
+      action: {
+        click: () => {
+          const lane = this.lanes.addLane(target, where)
+          if (lane) this.selection.select(lane)
+          this.canvas.focus()
+        },
+      },
+    }
   }
 
   getMultiElementContextPadEntries(elements: Element[]): ContextPadEntries {
@@ -121,7 +172,8 @@ export class TraceContextPadProvider {
       .filter((e) => poolOf(e as never) === pool)
       .map((e) => rectOf(e as Shape))
     const parentKind = kindOf(parent)
-    // Stay inside the source's lane. A pool without lanes grows instead (auto-resize).
+    // Stay inside the source's lane vertically; past its right edge the lane
+    // (and with it the pool) grows to take the new step (auto-resize).
     const container = parentKind === 'lane' ? rectOf(parent) : undefined
     const position = findAppendPosition({ source: rectOf(source), size: shape, obstacles, container })
     const created = this.modeling.appendShape(source, shape, position, parent, {
@@ -150,7 +202,7 @@ export class TraceContextPadProvider {
     }
   }
 
-  /** What the `elements.delete` rule lets go (e.g. never a lane). */
+  /** What the `elements.delete` rule lets go (the same policy as the Delete key). */
   private deletable(elements: Element[]): Element[] {
     return resolveDeletable(this.rules.allowed('elements.delete', { elements }), elements)
   }

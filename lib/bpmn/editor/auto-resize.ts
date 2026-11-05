@@ -4,10 +4,13 @@ import type { Shape } from 'diagram-js/lib/model/Types.js'
 import { shapeKindOf } from './element-kinds.ts'
 
 /**
- * Grows a pool when steps are added or moved past its edge, so a flow built
- * with quick-add never spills out of its frame. Pools with lanes are left
- * alone: resizing them means resizing every lane, which arrives with lane
- * editing (Task 12).
+ * Grows the frame a step is added to or moved into when the step lands past
+ * (or near) its edge, so a flow built with quick-add never spills out:
+ * - a lane grows, and the lane behaviour (lane-behaviour.ts) pushes the other
+ *   lanes and grows the pool with it, horizontally and vertically;
+ * - a pool (with or without lanes) grows, its lanes following.
+ * Lanes themselves never trigger growth of their pool here: they are always
+ * flush with it, and the lane behaviour already keeps the pool around them.
  */
 export default class TraceAutoResizeProvider extends AutoResizeProvider {
   static $inject = ['eventBus']
@@ -16,8 +19,10 @@ export default class TraceAutoResizeProvider extends AutoResizeProvider {
     super(eventBus)
   }
 
-  canResize(_elements: Shape[], target: Shape): boolean {
-    if (shapeKindOf(target?.type ?? '') !== 'participant' || !target.businessObject?.processRef) return false
-    return !(target.children ?? []).some((child) => shapeKindOf(child.type) === 'lane')
+  canResize(elements: Shape[], target: Shape): boolean {
+    if (elements.some((element) => shapeKindOf(element.type) === 'lane')) return false
+    const kind = shapeKindOf(target?.type ?? '')
+    if (kind === 'lane') return true
+    return kind === 'participant' && !!target.businessObject?.processRef
   }
 }

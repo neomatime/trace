@@ -9,6 +9,7 @@ import { ElementPropertiesPanel } from '@/components/process-flows/element-prope
 import type { ProcessEditor } from '@/lib/bpmn/editor'
 import { emptyProcessXml, parseBpmnXml } from '@/lib/bpmn/graph'
 import { SCRATCH_SEED_XML } from '@/lib/bpmn/editor/__scratch-seed'
+import { computeMetrics } from '@/modules/process-flows/metrics'
 
 const button =
   'rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring'
@@ -33,6 +34,19 @@ export default function BpmnScratchPage() {
     setReport(same ? `round trip OK (${before.ok ? before.graph.elements.length : 0} elements)` : 'round trip MISMATCH')
   }
 
+  // Task 12 check: lane of every step and the hand-off count of the exported XML.
+  const laneReport = async () => {
+    const current = editor
+    if (!current) return
+    const exported = await current.exportXml()
+    const parsed = await parseBpmnXml(exported)
+    if (!parsed.ok) return setReport(`parse error: ${parsed.error}`)
+    const lanes = parsed.graph.elements.map((e) => `${e.id}@${e.laneId ?? '-'}`).join(' ')
+    const processes = (exported.match(/<bpmn:process /g) ?? []).length
+    setReport(`handoffs=${computeMetrics(parsed.graph).handoffs} processes=${processes} ${lanes}`)
+    ;(window as unknown as { __traceXml?: string }).__traceXml = exported
+  }
+
   return (
     <main className="flex h-screen flex-col gap-3 p-4">
       <header className="flex flex-wrap items-center gap-2">
@@ -41,6 +55,7 @@ export default function BpmnScratchPage() {
         <button className={button} onClick={() => { setSelected(null); setReadOnly((v) => !v) }}>
           {readOnly ? 'Make editable' : 'Make read-only'}
         </button>
+        <button className={button} onClick={() => void laneReport()}>Lane report</button>
         <button className={button} onClick={() => setXml(SCRATCH_SEED_XML)}>Reset seed</button>
         <button className={button} onClick={() => void emptyProcessXml('New process').then(setXml)}>
           Start empty
