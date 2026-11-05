@@ -11,6 +11,23 @@ import { emptyProcessXml, parseBpmnXml } from '@/lib/bpmn/graph'
 import { SCRATCH_SEED_XML } from '@/lib/bpmn/editor/__scratch-seed'
 import { computeMetrics } from '@/modules/process-flows/metrics'
 
+// Task 12 check: a diagram drawn for a bare process (no pool) to try "wrap in pool" on.
+const PROCESS_ONLY_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_P" targetNamespace="http://himark.co.za/bpmn">
+  <bpmn:process id="Proc_Only" name="Pay invoice" isExecutable="false">
+    <bpmn:startEvent id="Start_1" name="Invoice in" />
+    <bpmn:task id="Task_1" name="Check invoice" />
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="Task_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_P">
+    <bpmndi:BPMNPlane id="Plane_P" bpmnElement="Proc_Only">
+      <bpmndi:BPMNShape id="Start_1_di" bpmnElement="Start_1"><dc:Bounds x="200" y="200" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1"><dc:Bounds x="300" y="178" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1"><di:waypoint x="236" y="218" /><di:waypoint x="300" y="218" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`
+
 const button =
   'rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring'
 
@@ -57,6 +74,7 @@ export default function BpmnScratchPage() {
         </button>
         <button className={button} onClick={() => void laneReport()}>Lane report</button>
         <button className={button} onClick={() => setXml(SCRATCH_SEED_XML)}>Reset seed</button>
+        <button className={button} onClick={() => setXml(PROCESS_ONLY_XML)}>Process only</button>
         <button className={button} onClick={() => void emptyProcessXml('New process').then(setXml)}>
           Start empty
         </button>

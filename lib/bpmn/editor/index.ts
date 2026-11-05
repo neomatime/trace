@@ -384,7 +384,7 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
       let centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
 
       // Deepest container under the view centre that accepts the shape,
-      // else the root process, else the first lane or pool that does.
+      // else the root process, else the first lane (or pool without lanes) that does.
       const containers = (registry.getAll() as Element[]).filter(
         (e) => !isRoot(e) && !isConnection(e) && allowedIn(e),
       ) as Shape[]
@@ -392,7 +392,8 @@ export function createProcessEditor(container: HTMLElement, options: ProcessEdit
       let target: Element | undefined = containers.filter((c) => contains(c, centre)).pop()
       if (!target && allowedIn(root)) target = root
       if (!target && containers.length) {
-        target = containers[0]
+        // prefer a lane (or a pool without lanes) over a pool's lane-less band
+        target = containers.find((c) => !(c.children ?? []).some((child) => child.type === 'bpmn:Lane')) ?? containers[0]
         centre = midOf(target)
       }
       if (!target) return null
