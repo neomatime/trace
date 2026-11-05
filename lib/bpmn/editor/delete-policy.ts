@@ -28,12 +28,14 @@ export function lanesAmong<T extends Typed>(elements: readonly T[]): T[] {
 }
 
 /**
- * Deleting a lane keeps its steps (and any child lanes): they move up to the
- * pool. Returns the lane's child shapes that are not being deleted as well.
+ * Deleting a lane keeps its steps, any child lanes and any flows drawn inside
+ * it (diagram-js parents a flow to the lane when both its ends are moved into
+ * the lane together): they all move up to the pool. Returns the lane's
+ * children (shapes and connections) that are not being deleted as well.
  */
 export function survivorsOfLaneDelete<T extends Tree>(lane: T, deleting: readonly T[]): T[] {
   const gone = new Set<unknown>(deleting)
-  return ((lane.children ?? []) as T[]).filter((child) => !Array.isArray(child.waypoints) && !gone.has(child))
+  return ((lane.children ?? []) as T[]).filter((child) => !gone.has(child))
 }
 
 /**

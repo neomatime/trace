@@ -206,3 +206,13 @@ test('deleting a lane keeps its steps that are not deleted too', () => {
   assert.deepEqual(survivorsOfLaneDelete(laneA, [laneA, t1]), [t2])
   assert.deepEqual(lanesAmong([t1, laneA]), [laneA])
 })
+
+test('deleting a lane keeps sequence flows that are children of the lane', () => {
+  // diagram-js re-parents a flow into the lane when both ends are moved into
+  // it together (e.g. when the first lane takes in a pool's steps).
+  const { laneA, t1, t2, flow } = world()
+  const seq = flow('S', 'bpmn:SequenceFlow', t1, t2)
+  laneA.children?.push(seq)
+  assert.deepEqual(survivorsOfLaneDelete(laneA, [laneA]), [t1, t2, seq])
+  assert.deepEqual(survivorsOfLaneDelete(laneA, [laneA, seq]), [t1, t2], 'unless it is deleted too')
+})

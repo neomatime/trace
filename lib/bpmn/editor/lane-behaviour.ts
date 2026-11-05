@@ -4,7 +4,7 @@ import type Canvas from 'diagram-js/lib/core/Canvas.js'
 import type ElementFactory from 'diagram-js/lib/core/ElementFactory.js'
 import type EventBus from 'diagram-js/lib/core/EventBus.js'
 import type Modeling from 'diagram-js/lib/features/modeling/Modeling.js'
-import type { Element, Root, Shape } from 'diagram-js/lib/model/Types.js'
+import type { Connection, Element, Root, Shape } from 'diagram-js/lib/model/Types.js'
 import type { ModdleElement } from 'bpmn-moddle'
 import type BpmnDocument from './document.ts'
 import { lanesAmong, survivorsOfLaneDelete } from './delete-policy.ts'
@@ -240,8 +240,14 @@ export default class TraceLaneBehaviour extends CommandInterceptor {
       for (const lane of lanesAmong(deleting)) {
         const pool = lane.parent as Shape | undefined
         if (!pool) continue
-        const survivors = survivorsOfLaneDelete(lane as never, deleting as never) as Shape[]
-        if (survivors.length) modeling.moveElements(survivors, { x: 0, y: 0 }, pool, LAYOUT_HINTS as never)
+        const survivors = survivorsOfLaneDelete(lane as never, deleting as never) as Element[]
+        const shapes = survivors.filter((e) => !isConnection(e)) as Shape[]
+        if (shapes.length) modeling.moveElements(shapes, { x: 0, y: 0 }, pool, LAYOUT_HINTS as never)
+        // Flows still parented to the lane (one end stayed, or none moved) go up to the pool too,
+        // or deleting the lane would delete them with it.
+        for (const connection of survivors.filter(isConnection) as Connection[]) {
+          if (connection.parent === lane) modeling.moveConnection(connection, { x: 0, y: 0 }, pool)
+        }
       }
     })
 
